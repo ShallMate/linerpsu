@@ -1,0 +1,74 @@
+AltModWPrf n:256, 165647ns/eval 64.125+192.625=256.75 bytes/eval 512 ole/eval 0 f4/eval 2 ot/eval 
+Label                       Time (ms)  diff (ms)
+__________________________________
+DarkMatter.recver.begin           0.3      0.288  
+DarkMatter.sender.begin           0.3      0.037  
+end                              42.4     42.080  **********
+
+0.066 MB 
+
+
+AltModWPrf n:1024, 43061.4ns/eval 64.0391+192.164=256.203 bytes/eval 512 ole/eval 0 f4/eval 0.5 ot/eval 
+Label                       Time (ms)  diff (ms)
+__________________________________
+DarkMatter.recver.begin           0.3      0.328  
+DarkMatter.sender.begin           0.3      0.017  
+end                              44.1     43.749  **********
+
+0.262 MB 
+
+
+AltModWPrf n:4096, 14072.7ns/eval 64.0215+192.053=256.074 bytes/eval 512 ole/eval 0 f4/eval 0.125 ot/eval 
+Label                       Time (ms)  diff (ms)
+__________________________________
+DarkMatter.recver.begin           0.8      0.803  
+DarkMatter.sender.begin           0.8      0.001  
+end                              57.6     56.836  **********
+
+1.049 MB 
+
+AltModWPrf n:16384, 7768.43ns/eval 64.0171+192.025=256.042 bytes/eval 512 ole/eval 0 f4/eval 0.03125 ot/eval 
+Label                       Time (ms)  diff (ms)
+__________________________________
+DarkMatter.recver.begin           2.1      2.065  **
+DarkMatter.sender.begin           2.2      0.092  
+end                             127.3    125.120  **********
+
+4.195 MB 
+
+
+AltModWPrf n:65536, 6524.02ns/eval 64.016+192.018=256.034 bytes/eval 512 ole/eval 0 f4/eval 0.0078125 ot/eval 
+Label                       Time (ms)  diff (ms)
+__________________________________
+DarkMatter.recver.begin           8.5      8.544  ****
+DarkMatter.sender.begin           8.6      0.017  
+end                             427.6    418.995  **********
+
+16.779 MB 
+
+AltModWPrf n:262144, 6073.92ns/eval 64.0157+192.016=256.032 bytes/eval 512 ole/eval 0 f4/eval 0.00195312 ot/eval 
+Label                       Time (ms)  diff (ms)
+__________________________________
+DarkMatter.recver.begin          33.9     33.919  *****
+DarkMatter.sender.begin          33.9      0.025  
+end                            1592.2   1558.296  **********
+
+67.117 MB 
+
+AltModWPrf n:1048576, 6382.33ns/eval 64.0156+192.016=256.031 bytes/eval 512 ole/eval 0 f4/eval 0.000488281 ot/eval 
+Label                       Time (ms)  diff (ms)
+__________________________________
+DarkMatter.recver.begin         137.4    137.388  ******
+DarkMatter.sender.begin         137.4      0.026  
+end                            6692.4   6554.938  **********
+
+268.468 MB 
+
+AltModWPrf n:4194304, 7129.24ns/eval 64.0156+192.016=256.031 bytes/eval 512 ole/eval 0 f4/eval 0.00012207 ot/eval 
+Label                       Time (ms)  diff (ms)
+__________________________________
+DarkMatter.recver.begin         529.9    529.944  ******
+DarkMatter.sender.begin         530.0      0.015  
+end                           29902.2  29372.226  **********
+
+1073.873 MB 

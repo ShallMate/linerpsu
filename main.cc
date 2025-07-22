@@ -28,19 +28,20 @@ std::vector<uint128_t> CreateRangeItems(size_t begin, size_t size) {
   return ret;
 }
 
-void OurPSURR22() {
-  const uint64_t ns = 1 << 16;
-  const uint64_t nr = 1 << 16;
+void RunOurPSU() {
+  const uint64_t ns = 1 << 22;
+  const uint64_t nr = 1 << 22;
   const uint64_t diff = 10;
   cout << "ns: " << ns << ", nr: " << nr << ", diff: " << diff << endl;
   uint32_t cuckoolen = static_cast<uint32_t>(ns * 1.27);
-  cout << "cuckoolen: " << cuckoolen << endl;
+  cout << "cuckoo hash table size: " << cuckoolen << endl;
   CuckooHash T_X(ns);
   size_t bin_size = cuckoolen / 4;
   size_t weight = 3;
   size_t ssp = 40;
   okvs::Baxos baxos;
   okvs::Baxos baxos2;
+  std::chrono::duration<double> total_duration(0);
   yacl::crypto::Prg<uint128_t> prng(yacl::crypto::FastRandU128());
   uint128_t seed;
   prng.Fill(absl::MakeSpan(&seed, 1));
@@ -73,12 +74,17 @@ void OurPSURR22() {
   auto rr = receiver.get();
   auto end_time = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end_time - start_time;
+  //cout<< "Execution time 0: " << duration.count() << " seconds" << endl;
+  total_duration = total_duration + duration;
 
   auto start_time1 = std::chrono::high_resolution_clock::now();
   uint128_t k = yacl::crypto::FastRandU128();
   auto pi = GenShuffledRangeWithYacl(cuckoolen);
   auto end_time1 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> duration1 = end_time1 - start_time1 + duration;
+  std::chrono::duration<double> duration1 = end_time1 - start_time1;
+  //std::cout << "Execution time 1: " << duration1.count() << " seconds"<< std::endl;
+  total_duration = total_duration + duration1;
+
   std::vector<uint128_t> fxs;
   std::vector<uint128_t> fxr;
   Fakessoprf(pi, k, fxs, fxr);
@@ -91,10 +97,13 @@ void OurPSURR22() {
   auto rr1 = pssender.get();
   auto rr2 = psreceiver.get();
   auto end_time2 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> duration2 = end_time2 - start_time2 + duration1;
+  std::chrono::duration<double> duration2 = end_time2 - start_time2;
+  //std::cout << "Execution time 2: " << duration2.count() << " seconds"<< std::endl;
+  total_duration = total_duration + duration2;
   std::vector<bool> eqs;
   std::vector<bool> eqr;
   FakePiPEQT(rr1, rr2, rs, pi, eqs, eqr);
+  
   auto start_time3 = std::chrono::high_resolution_clock::now();
   auto shufflecuckoo = ShuffleWithYacl(T_X, pi);
   std::future<void> eqotesender = std::async(std::launch::async, [&] {
@@ -105,9 +114,12 @@ void OurPSURR22() {
   eqotesender.get();
   auto psuresults = eqotereceiver.get();
   auto end_time3 = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> duration3 = end_time3 - start_time3 + duration2;
-  std::cout << "Execution time: " << duration3.count() << " seconds"
-            << std::endl;
+
+  std::chrono::duration<double> duration3 = end_time3 - start_time3;
+  //std::cout << "Execution time 3: " << duration3.count() << " seconds"<< std::endl;
+  total_duration = total_duration + duration3;
+  std::cout << "Total execution time: " << total_duration.count()
+            << " seconds" << std::endl;
   items_b.insert(items_b.end(), psuresults.begin(), psuresults.end());
   std::cout << "Number of PSU results: " << items_b.size() << std::endl;
   auto bytesToMB = [](size_t bytes) -> double {
@@ -131,7 +143,9 @@ void OurPSURR22() {
             << " MB" << std::endl;
 }
 
+
+
 int main() {
-  OurPSURR22();
+  RunOurPSU();
   return 0;
 }

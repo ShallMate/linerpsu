@@ -65,20 +65,7 @@ inline void aes128_encrypt_batch(uint128_t& a_out, const uint128_t* keys,
   std::memcpy(&a_out, result_bytes, 16);
 }
 
-inline std::vector<bool> GetIntersectionMask(const std::vector<uint128_t>& x,
-                                             const std::vector<uint128_t>& y,
-                                             std::vector<bool>& mask) {
-  std::unordered_set<uint128_t, U128Hasher> y_set(y.begin(), y.end());
-  yacl::parallel_for(0, x.size(), [&](size_t start, size_t end) {
-    for (size_t i = start; i < end; ++i) {
-      if (y_set.contains(x[i])) {
-        mask[i] = true;
-      }
-    }
-  });
 
-  return mask;
-}
 
 inline void FakePEQT(const std::vector<uint128_t>& x,
                      const std::vector<uint128_t>& y, std::vector<bool>& out_a,
@@ -133,14 +120,12 @@ inline void Fakessoprf(std::vector<size_t> pi, uint128_t k,
   size_t n = pi.size();
   out_a.resize(n);
   out_b.resize(n);
-  yacl::parallel_for(0, n, [&](size_t begin, size_t end) {
-    for (size_t idx = begin; idx < end; ++idx) {
-      size_t idx1 = pi[idx];
-      uint128_t fx = yacl::crypto::Blake3_128(yacl::SerializeUint128(k ^ idx1));
-      out_a[idx] = yacl::crypto::FastRandU128();
-      out_b[idx] = fx ^ out_a[idx];
-    }
-  });
+  for (size_t idx = 0; idx < n; ++idx) {
+    size_t idx1 = pi[idx];
+    uint128_t fx = yacl::crypto::Blake3_128(yacl::SerializeUint128(k ^ idx1));
+    out_a[idx] = yacl::crypto::FastRandU128();
+    out_b[idx] = fx ^ out_a[idx];
+  }
 }
 
 inline std::vector<uint128_t> ShuffleWithYacl(CuckooHash t_x,
@@ -148,14 +133,12 @@ inline std::vector<uint128_t> ShuffleWithYacl(CuckooHash t_x,
   size_t n = t_x.cuckoolen_;
   YACL_ENFORCE(perm.size() == n, "Permutation size must match input size");
   std::vector<uint128_t> output(n);
-  yacl::parallel_for(0, n, [&](size_t begin, size_t end) {
-    for (size_t i = begin; i < end; ++i) {
-      if (t_x.hash_index_[perm[i]] == 0) {
-        output[i] = 0;
-      } else {
-        output[i] = t_x.bins_[perm[i]];
-      }
+  for (size_t i = 0; i < n; ++i) {
+    if (t_x.hash_index_[perm[i]] == 0) {
+      output[i] = 0;
+    } else {
+      output[i] = t_x.bins_[perm[i]];
     }
-  });
+  }
   return output;
 }

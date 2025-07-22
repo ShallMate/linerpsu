@@ -1,0 +1,96 @@
+ns: 256, nr: 256, diff: 10
+cuckoo hash table size: 325
+[2025-07-22 23:32:44.629] [info] [main.cc:49] items_num:325, bin_size:81
+[2025-07-22 23:32:44.629] [info] [main.cc:57] baxos.size(): 1320
+Total execution time: 0.0296828 seconds
+Number of PSU results: 266
+Sender sent bytes: 0.0340328 MB
+Sender received bytes: 0.054266 MB
+Receiver sent bytes: 0.054266 MB
+Receiver received bytes: 0.0340328 MB
+Total Communication: 0.0882988 MB
+
+
+ns: 1024, nr: 1024, diff: 10
+cuckoo hash table size: 1300
+[2025-07-22 23:33:29.917] [info] [main.cc:49] items_num:1300, bin_size:325
+[2025-07-22 23:33:29.917] [info] [main.cc:57] baxos.size(): 4116
+Total execution time: 0.02773 seconds
+Number of PSU results: 1034
+Sender sent bytes: 0.106451 MB
+Sender received bytes: 0.14855 MB
+Receiver sent bytes: 0.14855 MB
+Receiver received bytes: 0.106451 MB
+Total Communication: 0.255001 MB
+
+ns: 4096, nr: 4096, diff: 10
+cuckoo hash table size: 5201
+[2025-07-22 23:34:16.794] [info] [main.cc:49] items_num:5201, bin_size:1300
+[2025-07-22 23:34:16.794] [info] [main.cc:57] baxos.size(): 9285
+Total execution time: 0.0413382 seconds
+Number of PSU results: 4106
+Sender sent bytes: 0.304373 MB
+Sender received bytes: 0.497534 MB
+Receiver sent bytes: 0.497534 MB
+Receiver received bytes: 0.304373 MB
+Total Communication: 0.801907 MB
+
+ns: 16384, nr: 16384, diff: 10
+cuckoo hash table size: 20807
+[2025-07-22 23:35:03.995] [info] [main.cc:49] items_num:20807, bin_size:5201
+[2025-07-22 23:35:03.995] [info] [main.cc:57] baxos.size(): 30945
+Total execution time: 0.0650615 seconds
+Number of PSU results: 16394
+Sender sent bytes: 1.11114 MB
+Sender received bytes: 1.83127 MB
+Receiver sent bytes: 1.83127 MB
+Receiver received bytes: 1.11114 MB
+Total Communication: 2.94241 MB
+
+ns: 65536, nr: 65536, diff: 10
+cuckoo hash table size: 83230
+[2025-07-22 23:35:48.793] [info] [main.cc:49] items_num:83230, bin_size:20807
+[2025-07-22 23:35:48.793] [info] [main.cc:57] baxos.size(): 112305
+Total execution time: 0.16103 seconds
+Number of PSU results: 65546
+Sender sent bytes: 4.25759 MB
+Sender received bytes: 7.04781 MB
+Receiver sent bytes: 7.04781 MB
+Receiver received bytes: 4.25759 MB
+Total Communication: 11.3054 MB
+
+ns: 262144, nr: 262144, diff: 10
+cuckoo hash table size: 332922
+[2025-07-22 23:36:18.302] [info] [main.cc:49] items_num:332922, bin_size:83230
+[2025-07-22 23:36:18.302] [info] [main.cc:57] baxos.size(): 427490
+Total execution time: 0.694832 seconds
+Number of PSU results: 262154
+Sender sent bytes: 16.6869 MB
+Sender received bytes: 27.6871 MB
+Receiver sent bytes: 27.6871 MB
+Receiver received bytes: 16.6869 MB
+Total Communication: 44.374 MB
+
+ns: 1048576, nr: 1048576, diff: 10
+cuckoo hash table size: 1331691
+[2025-07-22 23:36:55.758] [info] [main.cc:49] items_num:1331691, bin_size:332922
+[2025-07-22 23:36:55.758] [info] [main.cc:57] baxos.size(): 1668145
+Total execution time: 3.89506 seconds
+Number of PSU results: 1048586
+Sender sent bytes: 66.0978 MB
+Sender received bytes: 109.796 MB
+Receiver sent bytes: 109.796 MB
+Receiver received bytes: 66.0978 MB
+Total Communication: 175.894 MB
+
+ns: 4194304, nr: 4194304, diff: 10
+cuckoo hash table size: 5326766
+[2025-07-22 23:37:37.825] [info] [main.cc:49] items_num:5326766, bin_size:1331691
+[2025-07-22 23:37:37.825] [info] [main.cc:57] baxos.size(): 6591585
+Total execution time: 19.9681 seconds
+Number of PSU results: 4194314
+Sender sent bytes: 263.144 MB
+Sender received bytes: 437.361 MB
+Receiver sent bytes: 437.361 MB
+Receiver received bytes: 263.144 MB
+Total Communication: 700.505 MB

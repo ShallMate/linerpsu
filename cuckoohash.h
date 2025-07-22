@@ -9,10 +9,7 @@
 #include <vector>
 
 #include "yacl/base/int128.h"
-#include "yacl/crypto/hash/hash_utils.h"
 #include "yacl/crypto/rand/rand.h"
-#include "yacl/utils/parallel.h"
-#include "yacl/utils/serialize.h"
 
 inline uint64_t GetHash(size_t idx, uint128_t code) {
   uint64_t aligned_u64;
@@ -76,8 +73,8 @@ class CuckooHash {
   void Transform(uint128_t seed) {
     __m128i key_block =
         _mm_loadu_si128(reinterpret_cast<const __m128i*>(&seed));
-    yacl::parallel_for(0, bins_.size(), [&](int64_t begin, int64_t end) {
-      for (int64_t idx = begin; idx < end; ++idx) {
+    
+      for (size_t idx = 0; idx < cuckoolen_; ++idx) {
         if (bins_[idx] == 0 && hash_index_[idx] == 0) {
           bins_[idx] = yacl::crypto::FastRandU128();
         } else {
@@ -86,7 +83,6 @@ class CuckooHash {
           bins_[idx] = Oracle(hash_index_[idx], key_block, y_block);
         }
       }
-    });
   }
 
   std::vector<uint128_t> bins_;
