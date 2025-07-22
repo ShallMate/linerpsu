@@ -10,7 +10,6 @@
 #include "examples/linerpsu/okvs/aes_crhash.h"
 #include "examples/linerpsu/okvs/galois128.h"
 #include "libdivide.h"
-
 #include "yacl/math/gadget.h"
 #include "yacl/utils/platform_utils.h"
 

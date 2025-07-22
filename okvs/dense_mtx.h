@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "examples/linerpsu/okvs/galois128.h"
-
 #include "yacl/base/exception.h"
 
 namespace okvs {

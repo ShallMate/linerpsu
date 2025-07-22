@@ -1,7 +1,7 @@
 
 #include <sys/types.h>
-#include <cstddef>
 
+#include <cstddef>
 #include <vector>
 
 #include "yacl/base/int128.h"
@@ -13,9 +13,11 @@ namespace eqote {
 using namespace yacl::crypto;
 using namespace std;
 
-vector<uint128_t> EQOTERecv(const std::shared_ptr<yacl::link::Context>& ctx,const std::vector<bool>& eqr);
+vector<uint128_t> EQOTERecv(const std::shared_ptr<yacl::link::Context>& ctx,
+                            const std::vector<bool>& eqr);
 
-void EQOTESend(const std::shared_ptr<yacl::link::Context>& ctx,const std::vector<bool>& eqs,
+void EQOTESend(const std::shared_ptr<yacl::link::Context>& ctx,
+               const std::vector<bool>& eqs,
                const std::vector<uint128_t>& elems);
 
-}
+}  // namespace eqote

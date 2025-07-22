@@ -5,7 +5,6 @@
 #include <vector>
 
 #include "spdlog/spdlog.h"
-
 #include "yacl/utils/parallel.h"
 
 namespace okvs {

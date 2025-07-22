@@ -4,7 +4,6 @@
 
 #include "examples/linerpsu/okvs/baxos.h"
 #include "spdlog/spdlog.h"
-
 #include "yacl/crypto/rand/rand.h"
 #include "yacl/crypto/tools/prg.h"
 

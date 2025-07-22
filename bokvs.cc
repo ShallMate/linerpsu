@@ -8,10 +8,8 @@
 
 #include "c/blake3.h"
 #include "examples/linerpsu/okvs/galois128.h"
-
 #include "yacl/base/int128.h"
 #include "yacl/utils/parallel.h"
-
 
 const uint8_t bitMasks[8] = {
     0x80,  // 1000 0000
@@ -150,8 +148,8 @@ void OKVSBK::DecodeOtherP(std::vector<uint128_t> keys,
 }
 
 void OKVSBK::DecodeDifflenP(std::vector<uint128_t> keys,
-                          std::vector<uint128_t>& values,
-                          std::vector<uint128_t> p) const {
+                            std::vector<uint128_t>& values,
+                            std::vector<uint128_t> p) const {
   auto b = this->b_;
   auto r = this->r_;
   auto w = this->w_;
@@ -168,7 +166,6 @@ void OKVSBK::DecodeDifflenP(std::vector<uint128_t> keys,
     }
   });
 }
-
 
 void OKVSBK::Mul(okvs::Galois128 delta_gf128) {
   auto m = this->m_;

@@ -1,7 +1,7 @@
 
 #include <sys/types.h>
-#include <cstddef>
 
+#include <cstddef>
 #include <vector>
 
 #include "yacl/base/int128.h"
@@ -16,45 +16,44 @@ using namespace yacl::crypto;
 using namespace std;
 using namespace std::chrono;
 
-
 // C[idx] = fxs[idx] ^ D[idx1]
 // rr[idx]^A[idx];
 std::vector<uint128_t> PSSend(const std::shared_ptr<yacl::link::Context>& ctx,
-             std::vector<size_t>& pi,std::vector<uint128_t>& fxs) {
-    size_t n = pi.size();
-    std::vector<uint128_t> D(n);
-    auto buf = ctx->Recv(ctx->PrevRank(), "Receive D");
-    
-    std::memcpy(D.data(), buf.data(), buf.size());
-    
-    std::vector<uint128_t> C(n);
-    yacl::parallel_for(0, n, [&](size_t begin, size_t end) {
-        for (size_t idx = begin; idx < end; ++idx) {
-            size_t idx1 = pi[idx];
-            C[idx] = fxs[idx] ^ D[idx1];
-        }
-    });
-    return C;
+                              std::vector<size_t>& pi,
+                              std::vector<uint128_t>& fxs) {
+  size_t n = pi.size();
+  std::vector<uint128_t> D(n);
+  auto buf = ctx->Recv(ctx->PrevRank(), "Receive D");
+
+  std::memcpy(D.data(), buf.data(), buf.size());
+
+  std::vector<uint128_t> C(n);
+  yacl::parallel_for(0, n, [&](size_t begin, size_t end) {
+    for (size_t idx = begin; idx < end; ++idx) {
+      size_t idx1 = pi[idx];
+      C[idx] = fxs[idx] ^ D[idx1];
+    }
+  });
+  return C;
 }
 
-
 std::vector<uint128_t> PSRecv(const std::shared_ptr<yacl::link::Context>& ctx,
-                          std::vector<uint128_t>& fxr,std::vector<uint128_t>& rr,uint128_t k) {
-    size_t n = rr.size();
-    std::vector<uint128_t> A(n);
-    std::vector<uint128_t> D(n);
-    yacl::parallel_for(0, n, [&](size_t begin, size_t end) {
-        for (size_t idx = begin; idx < end; ++idx) {
-
-            A[idx] = yacl::crypto::Blake3_128(yacl::SerializeUint128(k^idx));
-            D[idx] = rr[idx]^A[idx];
-        }
-    });
-    ctx->SendAsync(
+                              std::vector<uint128_t>& fxr,
+                              std::vector<uint128_t>& rr, uint128_t k) {
+  size_t n = rr.size();
+  std::vector<uint128_t> A(n);
+  std::vector<uint128_t> D(n);
+  yacl::parallel_for(0, n, [&](size_t begin, size_t end) {
+    for (size_t idx = begin; idx < end; ++idx) {
+      A[idx] = yacl::crypto::Blake3_128(yacl::SerializeUint128(k ^ idx));
+      D[idx] = rr[idx] ^ A[idx];
+    }
+  });
+  ctx->SendAsync(
       ctx->NextRank(),
       yacl::ByteContainerView(D.data(), D.size() * sizeof(uint128_t)),
       "Send D");
-    return fxr;
+  return fxr;
 }
 
-}
+}  // namespace ps

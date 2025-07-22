@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "examples/linerpsu/okvs/galois128.h"
-
 #include "yacl/base/int128.h"
 
 struct Row {
@@ -54,18 +53,18 @@ class OKVSBK {
   void DecodeOtherP(std::vector<uint128_t> keys, std::vector<uint128_t>& values,
                     std::vector<uint128_t> p) const;
   void DecodeDifflenP(std::vector<uint128_t> keys,
-                          std::vector<uint128_t>& values,
-                          std::vector<uint128_t> p) const;
+                      std::vector<uint128_t>& values,
+                      std::vector<uint128_t> p) const;
   void Mul(okvs::Galois128 delta_gf128);
 
  private:
-  int64_t n_;  
-  int64_t m_;  
-  int64_t w_;  
-  int64_t r_;  
+  int64_t n_;
+  int64_t m_;
+  int64_t w_;
+  int64_t r_;
   int64_t b_;
   double e_;
 
  public:
-  std::vector<uint128_t> p_;  
+  std::vector<uint128_t> p_;
 };

@@ -1,10 +1,10 @@
 #pragma once
 #include <wmmintrin.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <unordered_set>
 #include <vector>
-
 
 #include "examples/linerpsu/cuckoohash.h"
 #include "yacl/base/dynamic_bitset.h"
@@ -14,18 +14,14 @@
 #include "yacl/utils/parallel.h"
 #include "yacl/utils/serialize.h"
 
-
-
 struct U128Hasher {
   size_t operator()(const uint128_t& val) const {
     return static_cast<size_t>(val >> 64) ^ static_cast<size_t>(val);
   }
 };
 
-
-
 inline void aes128_encrypt_batch(uint128_t& a_out, const uint128_t keys[128],
-                          const uint128_t& y) {
+                                 const uint128_t& y) {
   __m128i y_block = _mm_loadu_si128(reinterpret_cast<const __m128i*>(&y));
 
   uint8_t result_bytes[16] = {0};
@@ -85,8 +81,7 @@ inline std::vector<bool> GetIntersectionMask(const std::vector<uint128_t>& x,
 }
 
 inline void FakePEQT(const std::vector<uint128_t>& x,
-                     const std::vector<uint128_t>& y,
-                     std::vector<bool>& out_a,
+                     const std::vector<uint128_t>& y, std::vector<bool>& out_a,
                      std::vector<bool>& out_b) {
   size_t n = x.size();
   YACL_ENFORCE(y.size() == n, "x and y must be same length");
@@ -99,26 +94,24 @@ inline void FakePEQT(const std::vector<uint128_t>& x,
     if (eq_bit) {
       m++;
     }
-    out_a[i] = rand_bits[i];            
-    out_b[i] = eq_bit ^ out_a[i];       
+    out_a[i] = rand_bits[i];
+    out_b[i] = eq_bit ^ out_a[i];
   }
-  std::cout<<"FakePEQT: "<<m<<std::endl;
+  std::cout << "FakePEQT: " << m << std::endl;
 }
 
 inline void FakePiPEQT(const std::vector<uint128_t>& x1,
-                      const std::vector<uint128_t>& x2,
-                     const std::vector<uint128_t>& y,
-                     std::vector<size_t>& pi,
-                     std::vector<bool>& out_a,
-                     std::vector<bool>& out_b) {
+                       const std::vector<uint128_t>& x2,
+                       const std::vector<uint128_t>& y, std::vector<size_t>& pi,
+                       std::vector<bool>& out_a, std::vector<bool>& out_b) {
   size_t n = pi.size();
   out_a.resize(n);
   out_b.resize(n);
   auto rand_bits = yacl::crypto::FastRandBits(n);
   for (size_t i = 0; i < n; ++i) {
-    bool eq_bit = (x1[i]^x2[i]) == y[pi[i]]; 
-    out_a[i] = rand_bits[i];            
-    out_b[i] = eq_bit ^ out_a[i];       
+    bool eq_bit = (x1[i] ^ x2[i]) == y[pi[i]];
+    out_a[i] = rand_bits[i];
+    out_b[i] = eq_bit ^ out_a[i];
   }
 }
 
@@ -127,42 +120,42 @@ inline std::vector<size_t> GenShuffledRangeWithYacl(size_t n) {
   for (size_t i = 0; i < n; ++i) {
     perm[i] = i;
   }
-  auto rng = []() { return static_cast<uint32_t>(yacl::crypto::SecureRandU128()); };
+  auto rng = []() {
+    return static_cast<uint32_t>(yacl::crypto::SecureRandU128());
+  };
   std::shuffle(perm.begin(), perm.end(), std::mt19937(rng()));
   return perm;
 }
 
-inline void Fakessoprf(std::vector<size_t> pi,
-                      uint128_t k,
-                      std::vector<uint128_t>& out_a,
-                      std::vector<uint128_t>& out_b) {
+inline void Fakessoprf(std::vector<size_t> pi, uint128_t k,
+                       std::vector<uint128_t>& out_a,
+                       std::vector<uint128_t>& out_b) {
   size_t n = pi.size();
   out_a.resize(n);
   out_b.resize(n);
   yacl::parallel_for(0, n, [&](size_t begin, size_t end) {
-        for (size_t idx = begin; idx < end; ++idx) {
-            size_t idx1 = pi[idx];
-            uint128_t fx = yacl::crypto::Blake3_128(yacl::SerializeUint128(k^idx1));
-            out_a[idx] = yacl::crypto::FastRandU128();
-            out_b[idx] = fx ^ out_a[idx];    
-        }
+    for (size_t idx = begin; idx < end; ++idx) {
+      size_t idx1 = pi[idx];
+      uint128_t fx = yacl::crypto::Blake3_128(yacl::SerializeUint128(k ^ idx1));
+      out_a[idx] = yacl::crypto::FastRandU128();
+      out_b[idx] = fx ^ out_a[idx];
+    }
   });
 }
 
-inline std::vector<uint128_t> ShuffleWithYacl(
-    CuckooHash t_x, const std::vector<size_t>& perm) {
+inline std::vector<uint128_t> ShuffleWithYacl(CuckooHash t_x,
+                                              const std::vector<size_t>& perm) {
   size_t n = t_x.cuckoolen_;
   YACL_ENFORCE(perm.size() == n, "Permutation size must match input size");
   std::vector<uint128_t> output(n);
   yacl::parallel_for(0, n, [&](size_t begin, size_t end) {
     for (size_t i = begin; i < end; ++i) {
-      if (t_x.hash_index_[perm[i]]==0){
-          output[i] = 0;
-      }else{
-      output[i] = t_x.bins_[perm[i]];
+      if (t_x.hash_index_[perm[i]] == 0) {
+        output[i] = 0;
+      } else {
+        output[i] = t_x.bins_[perm[i]];
       }
     }
   });
   return output;
 }
-

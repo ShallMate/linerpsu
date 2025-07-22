@@ -5,7 +5,6 @@
 #include "absl/strings/escaping.h"
 #include "gtest/gtest.h"
 #include "spdlog/spdlog.h"
-
 #include "yacl/crypto/tools/prg.h"
 
 namespace okvs {
