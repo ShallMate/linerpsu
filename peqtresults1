@@ -79,3 +79,13 @@ Sender received bytes: 84.6185 MB
 Receiver sent bytes: 84.6185 MB
 Receiver received bytes: 188.744 MB
 Total Communication: 273.363 MB
+
+ns: 1024, nr: 1024, diff: 10
+cuckoo hash table size: 1300
+Total execution time: 0.0602377 seconds
+Number of PSU results: 1034
+Sender sent bytes: 0.0640774 MB
+Sender received bytes: 0.0869198 MB
+Receiver sent bytes: 0.0869198 MB
+Receiver received bytes: 0.0640774 MB
+Total Communication: 0.150997 MB

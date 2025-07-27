@@ -21,4 +21,14 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
                                CuckooHash& T_X, uint32_t cuckoolen,
                                okvs::Baxos baxos, okvs::Baxos baxos2);
 
+std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
+                               std::vector<uint128_t>& elem_hashes,
+                               uint32_t cuckoolen, OKVSBK baxos,
+                               OKVSBK baxos2);
+
+std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
+                               std::vector<uint128_t>& elem_hashes,
+                               CuckooHash& T_X, uint32_t cuckoolen,
+                               OKVSBK baxos, OKVSBK baxos2);
+
 }  // namespace psu

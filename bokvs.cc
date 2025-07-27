@@ -9,7 +9,6 @@
 #include "c/blake3.h"
 #include "examples/linerpsu/okvs/galois128.h"
 #include "yacl/base/int128.h"
-#include "yacl/utils/parallel.h"
 
 const uint8_t bitMasks[8] = {
     0x80,  // 1000 0000
@@ -60,11 +59,9 @@ bool OKVSBK::Encode(std::vector<uint128_t> keys,
   std::vector<int64_t> piv(n);
   std::vector<bool> flags(n);
   std::vector<Row> rows(n);
-  yacl::parallel_for(0, this->n_, [&](int64_t begin, int64_t end) {
-    for (int64_t idx = begin; idx < end; ++idx) {
-      rows[idx] = Ro(keys[idx], r, b, values[idx]);
-    }
-  });
+  for (int64_t idx = 0; idx < n_; ++idx) {
+    rows[idx] = Ro(keys[idx], r, b, values[idx]);
+  }
   std::sort(rows.begin(), rows.end(),
             [](const Row& a, const Row& b) { return a.pos < b.pos; });
   for (int64_t i = 0; i < n; i++) {
@@ -113,8 +110,7 @@ void OKVSBK::Decode(std::vector<uint128_t> keys,
   auto r = this->r_;
   auto w = this->w_;
   auto p = this->p_;
-  yacl::parallel_for(0, this->n_, [&](int64_t begin, int64_t end) {
-    for (int64_t idx = begin; idx < end; ++idx) {
+    for (int64_t idx = 0; idx < n_; ++idx) {
       std::vector<uint8_t> row = HashToFixedSize(b, keys[idx]);
       int64_t pos = BytesToUint128(row) % r;
       pos = (pos / 8) << 3;
@@ -124,7 +120,6 @@ void OKVSBK::Decode(std::vector<uint128_t> keys,
         }
       }
     }
-  });
 }
 
 void OKVSBK::DecodeOtherP(std::vector<uint128_t> keys,
@@ -133,8 +128,8 @@ void OKVSBK::DecodeOtherP(std::vector<uint128_t> keys,
   auto b = this->b_;
   auto r = this->r_;
   auto w = this->w_;
-  yacl::parallel_for(0, this->n_, [&](int64_t begin, int64_t end) {
-    for (int64_t idx = begin; idx < end; ++idx) {
+
+    for (int64_t idx = 0; idx < n_; ++idx) {
       std::vector<uint8_t> row = HashToFixedSize(b, keys[idx]);
       int64_t pos = BytesToUint128(row) % r;
       pos = (pos / 8) * 8;
@@ -144,7 +139,6 @@ void OKVSBK::DecodeOtherP(std::vector<uint128_t> keys,
         }
       }
     }
-  });
 }
 
 void OKVSBK::DecodeDifflenP(std::vector<uint128_t> keys,
@@ -153,8 +147,8 @@ void OKVSBK::DecodeDifflenP(std::vector<uint128_t> keys,
   auto b = this->b_;
   auto r = this->r_;
   auto w = this->w_;
-  yacl::parallel_for(0, keys.size(), [&](int64_t begin, int64_t end) {
-    for (int64_t idx = begin; idx < end; ++idx) {
+  
+    for (size_t idx = 0; idx < keys.size(); ++idx) {
       std::vector<uint8_t> row = HashToFixedSize(b, keys[idx]);
       int64_t pos = BytesToUint128(row) % r;
       pos = pos & -8;
@@ -164,14 +158,11 @@ void OKVSBK::DecodeDifflenP(std::vector<uint128_t> keys,
         }
       }
     }
-  });
 }
 
 void OKVSBK::Mul(okvs::Galois128 delta_gf128) {
   auto m = this->m_;
-  yacl::parallel_for(0, m, [&](int64_t begin, int64_t end) {
-    for (int64_t idx = begin; idx < end; ++idx) {
+    for (int64_t idx = 0; idx < m; ++idx) {
       this->p_[idx] = (delta_gf128 * this->p_[idx]).get<uint128_t>(0);
     }
-  });
 }

@@ -18,7 +18,9 @@ yacl_cc_binary(
         "ps.h",
         "ps.cc",
         "eqote.h",
-        "eqote.cc"
+        "eqote.cc",
+        "oprf.cc",
+        "oprf.h"
     ],
     deps = [
         "//examples/linerpsu/okvs:baxos",
