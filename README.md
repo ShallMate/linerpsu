@@ -18,6 +18,6 @@ cd yacl/examples/
 git clone this repository
 cd ..
 bazel build --linkopt=-ldl //...
-cd bazel-bin/examples/otokvspsi
+cd bazel-bin/examples/linerpsu
 ./ourpsu
 ```
