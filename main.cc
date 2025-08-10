@@ -79,6 +79,51 @@ void RunEQOTE(){
   
 }
 
+void RunOurPS(){
+  std::vector<uint128_t> fxs;
+  std::vector<uint128_t> fxr;
+  auto lctxs = yacl::link::test::SetupWorld(2);  // setup network
+  const uint64_t ns = 1 << 22;
+  const uint64_t nr = 1 << 22;
+  uint128_t k = yacl::crypto::FastRandU128();
+  const uint64_t diff = 10;
+  cout << "ns: " << ns << ", nr: " << nr << ", diff: " << diff << endl;
+  uint32_t cuckoolen = static_cast<uint32_t>(ns * 1.27);
+  auto rr = yacl::crypto::RandVec<uint128_t>(cuckoolen);
+  auto pi = GenShuffledRangeWithYacl(cuckoolen);
+  Fakessoprf(pi, k, fxs, fxr);
+  auto start_time2 = std::chrono::high_resolution_clock::now();
+  std::future<std::vector<__uint128_t>> pssender = std::async(
+      std::launch::async, [&] { return ps::PSSend(lctxs[0], pi, fxs); });
+
+  std::future<std::vector<__uint128_t>> psreceiver = std::async(
+      std::launch::async, [&] { return ps::PSRecv(lctxs[1], fxr, rr, k); });
+  auto rr1 = pssender.get();
+  auto rr2 = psreceiver.get();
+  auto end_time2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double> duration2 = end_time2 - start_time2;
+  std::cout << "Execution time 2: " << duration2.count() << " seconds"<< std::endl;
+    auto bytesToMB = [](size_t bytes) -> double {
+    return static_cast<double>(bytes) / (1024 * 1024);
+  };
+  auto sender_stats = lctxs[0]->GetStats();
+  auto receiver_stats = lctxs[1]->GetStats();
+  std::cout << "Sender sent bytes: "
+            << bytesToMB(sender_stats->sent_bytes.load()) << " MB" << std::endl;
+  std::cout << "Sender received bytes: "
+            << bytesToMB(sender_stats->recv_bytes.load()) << " MB" << std::endl;
+  std::cout << "Receiver sent bytes: "
+            << bytesToMB(receiver_stats->sent_bytes.load()) << " MB"
+            << std::endl;
+  std::cout << "Receiver received bytes: "
+            << bytesToMB(receiver_stats->recv_bytes.load()) << " MB"
+            << std::endl;
+  std::cout << "Total Communication: "
+            << bytesToMB(receiver_stats->sent_bytes.load()) +
+                   bytesToMB(receiver_stats->recv_bytes.load())
+            << " MB" << std::endl;
+}
+
 void RunOurOprf(){
     size_t logn = 24;
   uint64_t num = 1 << logn;
@@ -493,10 +538,11 @@ void RunOurOpprfwithBPSY() {
 }
 
 int main() {
-  RunOurPSU();
+  //RunOurPSU();
   //RunOurOprf();
   //RunOurPSUwithBPSY();
   //RunEQOTE();
+  RunOurPS();
   //RunOurOpprf();
   //RunOurOpprfwithBPSY();
   return 0;
