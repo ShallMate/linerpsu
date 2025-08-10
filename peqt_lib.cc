@@ -81,7 +81,6 @@ int main() {
   auto lctxs = yacl::link::test::SetupWorld(2);
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  // 并发执行
   std::future<std::vector<int>> fut0 = std::async(std::launch::async, [&] {
     return RunOnePartyEquality(lctxs[0], input_a, 0);
   });
@@ -89,14 +88,10 @@ int main() {
     return RunOnePartyEquality(lctxs[1], input_b, 1);
   });
 
-  // 等待获取结果
   auto result0 = fut0.get();
   auto result1 = fut1.get();
-
-  // 结束计时器
   auto end_time = std::chrono::high_resolution_clock::now();
 
-  // 计算耗时（单位：毫秒）
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                       end_time - start_time)
                       .count();
