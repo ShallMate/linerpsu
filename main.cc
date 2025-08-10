@@ -538,11 +538,11 @@ void RunOurOpprfwithBPSY() {
 }
 
 int main() {
-  //RunOurPSU();
+  RunOurPSU();
   //RunOurOprf();
   //RunOurPSUwithBPSY();
   //RunEQOTE();
-  RunOurPS();
+  //RunOurPS();
   //RunOurOpprf();
   //RunOurOpprfwithBPSY();
   return 0;
