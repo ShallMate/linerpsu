@@ -1,4 +1,4 @@
-
+#pragma once
 #include <sys/types.h>
 
 #include <cstddef>
@@ -19,10 +19,10 @@
 namespace oprf {
 
 std::vector<uint128_t> OPRFRecv(const std::shared_ptr<yacl::link::Context>& ctx,
-                          std::vector<uint128_t>& elem_hashes,
-                          okvs::Baxos baxos);
+                                std::vector<uint128_t>& elem_hashes,
+                                okvs::Baxos baxos);
 
 void OPRFSend(const std::shared_ptr<yacl::link::Context>& ctx,
-             std::vector<uint128_t>& elem_hashes, okvs::Baxos baxos);
+              std::vector<uint128_t>& elem_hashes, okvs::Baxos baxos);
 
 }  // namespace oprf

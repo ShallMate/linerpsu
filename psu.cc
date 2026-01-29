@@ -64,7 +64,6 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
     all_D[idx] = all_A[idx] ^ all_B[idx];
   }
 
-
   std::vector<uint128_t> p(okvssize);
 
   baxos.Solve(absl::MakeSpan(T_X.bins_), absl::MakeSpan(all_D),
@@ -125,7 +124,6 @@ std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
     T_Y[idx1 + 2] = Oracle(3, key_block, x_block);
     RS[idx1 + 2] = rs[h];
   }
-
 
   uint128_t omega_1 = yacl::crypto::FastRandU128();
   uint128_t t_1 = yacl::crypto::Blake3_128(yacl::SerializeUint128(omega_1));
@@ -216,15 +214,14 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
     all_D[idx] = all_A[idx] ^ all_B[idx];
   }
 
-
   std::vector<uint128_t> p(okvssize);
 
-  baxos.Encode(T_X.bins_, all_D) ;
-  
-  ctx->SendAsync(
-      ctx->NextRank(),
-      yacl::ByteContainerView(baxos.p_.data(), baxos.p_.size() * sizeof(uint128_t)),
-      "Send P");
+  baxos.Encode(T_X.bins_, all_D);
+
+  ctx->SendAsync(ctx->NextRank(),
+                 yacl::ByteContainerView(baxos.p_.data(),
+                                         baxos.p_.size() * sizeof(uint128_t)),
+                 "Send P");
 
   uint128_t omega_2 = yacl::crypto::FastRandU128();
   ctx->SendAsync(ctx->NextRank(), yacl::SerializeUint128(omega_2), "omega_2");
@@ -243,7 +240,7 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
   auto buf = ctx->Recv(ctx->PrevRank(), "Receive PP");
   std::memcpy(pp.data(), buf.data(), buf.size());
   std::vector<uint128_t> rs(cuckoolen);
-  baxos2.DecodeDifflenP(T_X.bins_,rs, pp);
+  baxos2.DecodeDifflenP(T_X.bins_, rs, pp);
   for (size_t idx = 0; idx < n; ++idx) {
     rs[idx] = rs[idx] ^ receivermasks[idx];
   }
@@ -275,7 +272,6 @@ std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
     T_Y[idx1 + 2] = Oracle(3, key_block, x_block);
     RS[idx1 + 2] = rs[h];
   }
-
 
   uint128_t omega_1 = yacl::crypto::FastRandU128();
   uint128_t t_1 = yacl::crypto::Blake3_128(yacl::SerializeUint128(omega_1));
@@ -310,16 +306,17 @@ std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
   uint128_t omega = omega_1 ^ omega_2;
 
   std::vector<uint128_t> sendermasks(n);
-  baxos.DecodeDifflenP(T_Y, sendermasks,p);
+  baxos.DecodeDifflenP(T_Y, sendermasks, p);
   for (size_t idx = 0; idx < n; ++idx) {
     sendermasks[idx] =
         RS[idx] ^ ((sendermasks[idx] & suint) ^ all_C[idx] ^ omega);
   }
 
   baxos2.Encode(T_Y, sendermasks);
-  ctx->SendAsync(
-      ctx->NextRank(),
-      yacl::ByteContainerView(baxos2.p_.data(), baxos2.p_.size() * sizeof(uint128_t)), "PP");
+  ctx->SendAsync(ctx->NextRank(),
+                 yacl::ByteContainerView(baxos2.p_.data(),
+                                         baxos2.p_.size() * sizeof(uint128_t)),
+                 "PP");
   return rs;
 }
 }  // namespace psu

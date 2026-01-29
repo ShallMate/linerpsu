@@ -1,9 +1,6 @@
-
-
 load("//bazel:yacl.bzl", "yacl_cc_binary")
 
 package(default_visibility = ["//visibility:public"])
-
 
 yacl_cc_binary(
     name = "ourpsu",
@@ -19,29 +16,50 @@ yacl_cc_binary(
         "ps.cc",
         "eqote.h",
         "eqote.cc",
+        "oprf.h",
         "oprf.cc",
-        "oprf.h"
+        "gmw.h",
     ],
     deps = [
         "//examples/linerpsu/okvs:baxos",
-        "//yacl/kernel/algorithms:base_ot",
-        "//yacl/base:int128",
-        "//yacl/math/f2k:f2k",
         "//examples/linerpsu/okvs:galois128",
+        "//yacl/base:int128",
         "//yacl/crypto/hash:blake3",
-        "//yacl/utils:parallel",
         "//yacl/crypto/hash:hash_utils",
         "//yacl/crypto/rand:rand",
-        "//yacl/kernel/algorithms:softspoken_ote"
+        "//yacl/kernel/algorithms:base_ot",
+        "//yacl/kernel/algorithms:softspoken_ote",
+        "//yacl/math/f2k:f2k",
+        "//yacl/utils:parallel",
+    ],
+    defines = [
+        "LIBDIVIDE_AVX2",
     ],
     copts = [
-        "-maes", "-mpclmul", "-mavx2", "-fopenmp", "-O3", "-std=c++20", "-march=native", "-mavx512f",
-        "-I/usr/local/include",  
+        "-O3",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-fopenmp",
+        "-maes",
+        "-mbmi2",
+        "-mpclmul",
+        "-msse4.1",
+        "-mavx",
+        "-mavx2",
+        "-I/usr/local/include/secureJoin",
     ],
     linkopts = [
-        "-fopenmp", "-O3", "-L/usr/local/lib", "-lcryptoTools",
+        "-fopenmp",
+        "-L/usr/local/lib",
+        "-Wl,--start-group",
+        "-lsecureJoin",
+        "-llibOTe",
+        "-lcryptoTools",
+        "-lmacoro",
+        "-lcoproto",
+        "-Wl,--end-group",
+        "-lsodium",
+        "-lpthread",
     ],
 )
-
-
-    

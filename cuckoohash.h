@@ -73,16 +73,16 @@ class CuckooHash {
   void Transform(uint128_t seed) {
     __m128i key_block =
         _mm_loadu_si128(reinterpret_cast<const __m128i*>(&seed));
-    
-      for (size_t idx = 0; idx < cuckoolen_; ++idx) {
-        if (bins_[idx] == 0 && hash_index_[idx] == 0) {
-          bins_[idx] = yacl::crypto::FastRandU128();
-        } else {
-          __m128i y_block =
-              _mm_loadu_si128(reinterpret_cast<const __m128i*>(&bins_[idx]));
-          bins_[idx] = Oracle(hash_index_[idx], key_block, y_block);
-        }
+
+    for (size_t idx = 0; idx < cuckoolen_; ++idx) {
+      if (bins_[idx] == 0 && hash_index_[idx] == 0) {
+        bins_[idx] = yacl::crypto::FastRandU128();
+      } else {
+        __m128i y_block =
+            _mm_loadu_si128(reinterpret_cast<const __m128i*>(&bins_[idx]));
+        bins_[idx] = Oracle(hash_index_[idx], key_block, y_block);
       }
+    }
   }
 
   std::vector<uint128_t> bins_;

@@ -23,8 +23,7 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
 
 std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
                                std::vector<uint128_t>& elem_hashes,
-                               uint32_t cuckoolen, OKVSBK baxos,
-                               OKVSBK baxos2);
+                               uint32_t cuckoolen, OKVSBK baxos, OKVSBK baxos2);
 
 std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
                                std::vector<uint128_t>& elem_hashes,

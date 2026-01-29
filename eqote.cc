@@ -23,12 +23,11 @@ vector<uint128_t> OTERecv(const std::shared_ptr<yacl::link::Context>& ctx,
   for (size_t i = 0; i != num_ot; ++i) {
     bbs[i] = chooses[i] ^ rand_bits[i];
   }
-  const auto *bit_ptr = reinterpret_cast<const std::byte*>(bbs.data());
+  const auto* bit_ptr = reinterpret_cast<const std::byte*>(bbs.data());
   size_t byte_len = bbs.num_blocks() * sizeof(decltype(*bbs.data()));
 
-  ctx->SendAsync(ctx->NextRank(),
-                yacl::ByteContainerView(bit_ptr, byte_len),
-                "Send bbs_bytes");
+  ctx->SendAsync(ctx->NextRank(), yacl::ByteContainerView(bit_ptr, byte_len),
+                 "Send bbs_bytes");
 
   auto buf = ctx->Recv(ctx->PrevRank(), "Recv ciphertexts0");
   auto buf1 = ctx->Recv(ctx->PrevRank(), "Recv ciphertexts1");
@@ -53,7 +52,7 @@ void OTESend(const std::shared_ptr<yacl::link::Context>& ctx,
   size_t num_ot = m0s.size();
   auto ss_sender = yacl::crypto::SoftspokenOtExtSender();
   auto store = ss_sender.GenRot(ctx, num_ot);
-  
+
   auto buf = ctx->Recv(ctx->PrevRank(), "Send bbs_bytes");
 
   yacl::dynamic_bitset<> bbs(num_ot);  // 或 eqs.size()
@@ -81,7 +80,7 @@ vector<uint128_t> EQOTERecv(const std::shared_ptr<yacl::link::Context>& ctx,
   auto recv_future =
       std::async(std::launch::async, [&] { outputs = OTERecv(ctx, eqr); });
   recv_future.get();
-  
+
   outputs.erase(std::remove_if(outputs.begin(), outputs.end(),
                                [](const auto& x) { return x == 0; }),
                 outputs.end());

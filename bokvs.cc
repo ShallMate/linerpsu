@@ -110,16 +110,16 @@ void OKVSBK::Decode(std::vector<uint128_t> keys,
   auto r = this->r_;
   auto w = this->w_;
   auto p = this->p_;
-    for (int64_t idx = 0; idx < n_; ++idx) {
-      std::vector<uint8_t> row = HashToFixedSize(b, keys[idx]);
-      int64_t pos = BytesToUint128(row) % r;
-      pos = (pos / 8) << 3;
-      for (int64_t j = pos; j < w + pos; j++) {
-        if (getBit(row[(j - pos) / 8], (j - pos) % 8)) {
-          values[idx] = values[idx] ^ p[j];
-        }
+  for (int64_t idx = 0; idx < n_; ++idx) {
+    std::vector<uint8_t> row = HashToFixedSize(b, keys[idx]);
+    int64_t pos = BytesToUint128(row) % r;
+    pos = (pos / 8) << 3;
+    for (int64_t j = pos; j < w + pos; j++) {
+      if (getBit(row[(j - pos) / 8], (j - pos) % 8)) {
+        values[idx] = values[idx] ^ p[j];
       }
     }
+  }
 }
 
 void OKVSBK::DecodeOtherP(std::vector<uint128_t> keys,
@@ -129,16 +129,16 @@ void OKVSBK::DecodeOtherP(std::vector<uint128_t> keys,
   auto r = this->r_;
   auto w = this->w_;
 
-    for (int64_t idx = 0; idx < n_; ++idx) {
-      std::vector<uint8_t> row = HashToFixedSize(b, keys[idx]);
-      int64_t pos = BytesToUint128(row) % r;
-      pos = (pos / 8) * 8;
-      for (int64_t j = pos; j < w + pos; j++) {
-        if (getBit(row[(j - pos) / 8], (j - pos) % 8)) {
-          values[idx] = values[idx] ^ p[j];
-        }
+  for (int64_t idx = 0; idx < n_; ++idx) {
+    std::vector<uint8_t> row = HashToFixedSize(b, keys[idx]);
+    int64_t pos = BytesToUint128(row) % r;
+    pos = (pos / 8) * 8;
+    for (int64_t j = pos; j < w + pos; j++) {
+      if (getBit(row[(j - pos) / 8], (j - pos) % 8)) {
+        values[idx] = values[idx] ^ p[j];
       }
     }
+  }
 }
 
 void OKVSBK::DecodeDifflenP(std::vector<uint128_t> keys,
@@ -147,22 +147,22 @@ void OKVSBK::DecodeDifflenP(std::vector<uint128_t> keys,
   auto b = this->b_;
   auto r = this->r_;
   auto w = this->w_;
-  
-    for (size_t idx = 0; idx < keys.size(); ++idx) {
-      std::vector<uint8_t> row = HashToFixedSize(b, keys[idx]);
-      int64_t pos = BytesToUint128(row) % r;
-      pos = pos & -8;
-      for (int64_t j = pos; j < w + pos; j++) {
-        if (getBit(row[(j - pos) >> 3], (j - pos) & 7)) {
-          values[idx] = values[idx] ^ p[j];
-        }
+
+  for (size_t idx = 0; idx < keys.size(); ++idx) {
+    std::vector<uint8_t> row = HashToFixedSize(b, keys[idx]);
+    int64_t pos = BytesToUint128(row) % r;
+    pos = pos & -8;
+    for (int64_t j = pos; j < w + pos; j++) {
+      if (getBit(row[(j - pos) >> 3], (j - pos) & 7)) {
+        values[idx] = values[idx] ^ p[j];
       }
     }
+  }
 }
 
 void OKVSBK::Mul(okvs::Galois128 delta_gf128) {
   auto m = this->m_;
-    for (int64_t idx = 0; idx < m; ++idx) {
-      this->p_[idx] = (delta_gf128 * this->p_[idx]).get<uint128_t>(0);
-    }
+  for (int64_t idx = 0; idx < m; ++idx) {
+    this->p_[idx] = (delta_gf128 * this->p_[idx]).get<uint128_t>(0);
+  }
 }

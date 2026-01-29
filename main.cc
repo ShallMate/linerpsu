@@ -7,11 +7,12 @@
 
 #include "examples/linerpsu/cuckoohash.h"
 #include "examples/linerpsu/eqote.h"
+#include "examples/linerpsu/gmw.h"
 #include "examples/linerpsu/okvs/baxos.h"
+#include "examples/linerpsu/oprf.h"
 #include "examples/linerpsu/ps.h"
 #include "examples/linerpsu/psu.h"
 #include "examples/linerpsu/utils.h"
-#include "examples/linerpsu/oprf.h"
 #include "yacl/base/int128.h"
 #include "yacl/crypto/hash/hash_utils.h"
 #include "yacl/crypto/rand/rand.h"
@@ -29,8 +30,8 @@ std::vector<uint128_t> CreateRangeItems(size_t begin, size_t size) {
   return ret;
 }
 
-void RunEQOTE(){
-    size_t num_ot = 1 << 16;  // 1M OTs
+void RunEQOTE() {
+  size_t num_ot = 1 << 20;  // 1M OTs
   const int kWorldSize = 2;
   auto lctxs = yacl::link::test::SetupWorld(kWorldSize);
   std::vector<uint128_t> m0s = yacl::crypto::RandVec<uint128_t>(num_ot);
@@ -44,11 +45,12 @@ void RunEQOTE(){
   std::vector<uint128_t> outputs;
 
   auto start_time = std::chrono::high_resolution_clock::now();
-  auto recv_future = std::async(
-      std::launch::async, [&] { outputs = eqote::EQOTERecv(lctxs[0], chooses1); });
+  auto recv_future = std::async(std::launch::async, [&] {
+    outputs = eqote::EQOTERecv(lctxs[0], chooses1);
+  });
 
-  auto send_future =
-      std::async(std::launch::async, [&] { eqote::EQOTESend(lctxs[1],chooses2,m0s); });
+  auto send_future = std::async(
+      std::launch::async, [&] { eqote::EQOTESend(lctxs[1], chooses2, m0s); });
 
   recv_future.get();
   send_future.get();
@@ -56,7 +58,7 @@ void RunEQOTE(){
   std::chrono::duration<double> duration = end_time - start_time;
   std::cout << "Send and Receive operations took " << duration.count()
             << " seconds." << std::endl;
-    auto bytesToMB = [](size_t bytes) -> double {
+  auto bytesToMB = [](size_t bytes) -> double {
     return static_cast<double>(bytes) / (1024 * 1024);
   };
   auto sender_stats = lctxs[0]->GetStats();
@@ -75,11 +77,9 @@ void RunEQOTE(){
             << bytesToMB(receiver_stats->sent_bytes.load()) +
                    bytesToMB(receiver_stats->recv_bytes.load())
             << " MB" << std::endl;
-
-  
 }
 
-void RunOurPS(){
+void RunOurPS() {
   std::vector<uint128_t> fxs;
   std::vector<uint128_t> fxr;
   auto lctxs = yacl::link::test::SetupWorld(2);  // setup network
@@ -102,8 +102,9 @@ void RunOurPS(){
   auto rr2 = psreceiver.get();
   auto end_time2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration2 = end_time2 - start_time2;
-  std::cout << "Execution time 2: " << duration2.count() << " seconds"<< std::endl;
-    auto bytesToMB = [](size_t bytes) -> double {
+  std::cout << "Execution time 2: " << duration2.count() << " seconds"
+            << std::endl;
+  auto bytesToMB = [](size_t bytes) -> double {
     return static_cast<double>(bytes) / (1024 * 1024);
   };
   auto sender_stats = lctxs[0]->GetStats();
@@ -124,8 +125,8 @@ void RunOurPS(){
             << " MB" << std::endl;
 }
 
-void RunOurOprf(){
-    size_t logn = 24;
+void RunOurOprf() {
+  size_t logn = 24;
   uint64_t num = 1 << logn;
   size_t bin_size = num / 4;
   size_t weight = 3;
@@ -147,18 +148,16 @@ void RunOurOprf(){
   std::vector<uint128_t> items_a = CreateRangeItems(0, num);
   std::vector<uint128_t> items_b = CreateRangeItems(0, num);
 
-
   auto lctxs = yacl::link::test::SetupWorld(2);  // setup network
 
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  std::future<void> sender = std::async(std::launch::async, [&] {
-    oprf::OPRFSend(lctxs[0], items_a, baxos);
-  });
+  std::future<void> sender = std::async(
+      std::launch::async, [&] { oprf::OPRFSend(lctxs[0], items_a, baxos); });
 
-  std::future<std::vector<uint128_t>> receiver = std::async(std::launch::async, [&] {
-    return oprf::OPRFRecv(lctxs[1], items_b, baxos);
-  });
+  std::future<std::vector<uint128_t>> receiver =
+      std::async(std::launch::async,
+                 [&] { return oprf::OPRFRecv(lctxs[1], items_b, baxos); });
 
   sender.get();
   auto psi_result = receiver.get();
@@ -205,7 +204,7 @@ void RunOurOpprf() {
   size_t ssp = 40;
   okvs::Baxos baxos;
   okvs::Baxos baxos2;
-  //std::chrono::duration<double> total_duration(0);
+  // std::chrono::duration<double> total_duration(0);
   yacl::crypto::Prg<uint128_t> prng(yacl::crypto::FastRandU128());
   uint128_t seed;
   prng.Fill(absl::MakeSpan(&seed, 1));
@@ -238,7 +237,7 @@ void RunOurOpprf() {
   auto rr = receiver.get();
   auto end_time = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end_time - start_time;
-  cout<< "Execution time 0: " << duration.count() << " seconds" << endl;
+  cout << "Execution time 0: " << duration.count() << " seconds" << endl;
   auto bytesToMB = [](size_t bytes) -> double {
     return static_cast<double>(bytes) / (1024 * 1024);
   };
@@ -258,7 +257,6 @@ void RunOurOpprf() {
             << bytesToMB(receiver_stats->sent_bytes.load()) +
                    bytesToMB(receiver_stats->recv_bytes.load())
             << " MB" << std::endl;
-
 }
 
 void RunOurPSU() {
@@ -266,8 +264,8 @@ void RunOurPSU() {
   const uint64_t nr = 1 << 20;
   const uint64_t diff = 10;
   std::vector<uint128_t> common = CreateRangeItems(0, ns - diff);
-  std::vector<uint128_t> unique_a = CreateRangeItems(ns - diff, diff);        
-  std::vector<uint128_t> unique_b = CreateRangeItems(ns, diff);    
+  std::vector<uint128_t> unique_a = CreateRangeItems(ns - diff, diff);
+  std::vector<uint128_t> unique_b = CreateRangeItems(ns, diff);
   cout << "ns: " << ns << ", nr: " << nr << ", diff: " << diff << endl;
   uint32_t cuckoolen = static_cast<uint32_t>(ns * 1.27);
   cout << "cuckoo hash table size: " << cuckoolen << endl;
@@ -312,7 +310,7 @@ void RunOurPSU() {
   auto rr = receiver.get();
   auto end_time = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end_time - start_time;
-  //cout<< "Execution time 0: " << duration.count() << " seconds" << endl;
+  // cout<< "Execution time 0: " << duration.count() << " seconds" << endl;
   total_duration = total_duration + duration;
 
   auto start_time1 = std::chrono::high_resolution_clock::now();
@@ -320,12 +318,14 @@ void RunOurPSU() {
   auto pi = GenShuffledRangeWithYacl(cuckoolen);
   auto end_time1 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration1 = end_time1 - start_time1;
-  //std::cout << "Execution time 1: " << duration1.count() << " seconds"<< std::endl;
+  // std::cout << "Execution time 1: " << duration1.count() << " seconds"<<
+  // std::endl;
   total_duration = total_duration + duration1;
 
   std::vector<uint128_t> fxs;
   std::vector<uint128_t> fxr;
-  Fakessoprf(pi, k, fxs, fxr);
+  // Fakessoprf(pi, k, fxs, fxr);
+  auto ssoprfbytes =  RealSsoprf_AltMod_BenchStyle(pi, k, fxs, fxr);
   auto start_time2 = std::chrono::high_resolution_clock::now();
   std::future<std::vector<__uint128_t>> pssender = std::async(
       std::launch::async, [&] { return ps::PSSend(lctxs[0], pi, fxs); });
@@ -336,12 +336,36 @@ void RunOurPSU() {
   auto rr2 = psreceiver.get();
   auto end_time2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration2 = end_time2 - start_time2;
-  //std::cout << "Execution time 2: " << duration2.count() << " seconds"<< std::endl;
+  // std::cout << "Execution time 2: " << duration2.count() << " seconds"<<
+  // std::endl;
   total_duration = total_duration + duration2;
-  std::vector<bool> eqs;
-  std::vector<bool> eqr;
-  FakePiPEQT(rr1, rr2, rs, pi, eqs, eqr);
+  //std::vector<bool> eqs;
+  //std::vector<bool> eqr;
+  std::vector<uint64_t> rr1u64;
+  std::vector<uint64_t> rr2u64;
+  std::vector<uint64_t> rsu64(cuckoolen);
+  U128VecToU64Vec_Lo(rr1,&rr1u64);
+  U128VecToU64Vec_Lo(rr2,&rr2u64);
+  for (size_t i = 0; i < cuckoolen; ++i) {
+    rsu64[i] = static_cast<uint64_t>(rs[pi[i]])^rr1u64[i];
+  }
+  auto f0 = std::async(std::launch::async, [&] {
+      //std::cerr << "[rank0-thread] start\n";
+      auto r = Party(lctxs[0], rr2u64);
+      //std::cerr << "[rank0-thread] done\n";
+      return r;
+    });
+    auto f1 = std::async(std::launch::async, [&] {
+      //std::cerr << "[rank1-thread] start\n";
+      auto r = Party(lctxs[1], rsu64);
+      //std::cerr << "[rank1-thread] done\n";
+      return r;
+    });
+    auto eqs = f0.get();
+    auto eqr = f1.get();
   
+  //FakePiPEQT(rr1, rr2, rs, pi, eqs, eqr);
+
   auto start_time3 = std::chrono::high_resolution_clock::now();
   auto shufflecuckoo = ShuffleWithYacl(T_X, pi);
   std::future<void> eqotesender = std::async(std::launch::async, [&] {
@@ -354,10 +378,11 @@ void RunOurPSU() {
   auto end_time3 = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<double> duration3 = end_time3 - start_time3;
-  //std::cout << "Execution time 3: " << duration3.count() << " seconds"<< std::endl;
+  // std::cout << "Execution time 3: " << duration3.count() << " seconds"<<
+  // std::endl;
   total_duration = total_duration + duration3;
-  std::cout << "Total execution time: " << total_duration.count()
-            << " seconds" << std::endl;
+  std::cout << "Total execution time (offline + online): " << total_duration.count() << " seconds"
+            << std::endl;
   items_b.insert(items_b.end(), psuresults.begin(), psuresults.end());
   std::cout << "Number of PSU results: " << items_b.size() << std::endl;
   auto bytesToMB = [](size_t bytes) -> double {
@@ -365,6 +390,8 @@ void RunOurPSU() {
   };
   auto sender_stats = lctxs[0]->GetStats();
   auto receiver_stats = lctxs[1]->GetStats();
+  std::cout << "The offline Communication:" << bytesToMB(ssoprfbytes)<< " MB"
+            << std::endl;
   std::cout << "Sender sent bytes: "
             << bytesToMB(sender_stats->sent_bytes.load()) << " MB" << std::endl;
   std::cout << "Sender received bytes: "
@@ -375,9 +402,9 @@ void RunOurPSU() {
   std::cout << "Receiver received bytes: "
             << bytesToMB(receiver_stats->recv_bytes.load()) << " MB"
             << std::endl;
-  std::cout << "Total Communication: "
+  std::cout << "Total Communication (offline + online): "
             << bytesToMB(receiver_stats->sent_bytes.load()) +
-                   bytesToMB(receiver_stats->recv_bytes.load())
+                   bytesToMB(receiver_stats->recv_bytes.load()) +bytesToMB(ssoprfbytes)
             << " MB" << std::endl;
 }
 
@@ -413,7 +440,7 @@ void RunOurPSUwithBPSY() {
   auto rr = receiver.get();
   auto end_time = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end_time - start_time;
-  //cout<< "Execution time 0: " << duration.count() << " seconds" << endl;
+  // cout<< "Execution time 0: " << duration.count() << " seconds" << endl;
   total_duration = total_duration + duration;
 
   auto start_time1 = std::chrono::high_resolution_clock::now();
@@ -421,7 +448,8 @@ void RunOurPSUwithBPSY() {
   auto pi = GenShuffledRangeWithYacl(cuckoolen);
   auto end_time1 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration1 = end_time1 - start_time1;
-  //std::cout << "Execution time 1: " << duration1.count() << " seconds"<< std::endl;
+  // std::cout << "Execution time 1: " << duration1.count() << " seconds"<<
+  // std::endl;
   total_duration = total_duration + duration1;
 
   std::vector<uint128_t> fxs;
@@ -437,12 +465,13 @@ void RunOurPSUwithBPSY() {
   auto rr2 = psreceiver.get();
   auto end_time2 = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration2 = end_time2 - start_time2;
-  //std::cout << "Execution time 2: " << duration2.count() << " seconds"<< std::endl;
+  // std::cout << "Execution time 2: " << duration2.count() << " seconds"<<
+  // std::endl;
   total_duration = total_duration + duration2;
   std::vector<bool> eqs;
   std::vector<bool> eqr;
   FakePiPEQT(rr1, rr2, rs, pi, eqs, eqr);
-  
+
   auto start_time3 = std::chrono::high_resolution_clock::now();
   auto shufflecuckoo = ShuffleWithYacl(T_X, pi);
   std::future<void> eqotesender = std::async(std::launch::async, [&] {
@@ -455,10 +484,11 @@ void RunOurPSUwithBPSY() {
   auto end_time3 = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<double> duration3 = end_time3 - start_time3;
-  //std::cout << "Execution time 3: " << duration3.count() << " seconds"<< std::endl;
+  // std::cout << "Execution time 3: " << duration3.count() << " seconds"<<
+  // std::endl;
   total_duration = total_duration + duration3;
-  std::cout << "Total execution time: " << total_duration.count()
-            << " seconds" << std::endl;
+  std::cout << "Total execution time: " << total_duration.count() << " seconds"
+            << std::endl;
   items_b.insert(items_b.end(), psuresults.begin(), psuresults.end());
   std::cout << "Number of PSU results: " << items_b.size() << std::endl;
   auto bytesToMB = [](size_t bytes) -> double {
@@ -481,7 +511,6 @@ void RunOurPSUwithBPSY() {
                    bytesToMB(receiver_stats->recv_bytes.load())
             << " MB" << std::endl;
 }
-
 
 void RunOurOpprfwithBPSY() {
   const uint64_t ns = 1 << 22;
@@ -514,7 +543,7 @@ void RunOurOpprfwithBPSY() {
   auto rr = receiver.get();
   auto end_time = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end_time - start_time;
-  cout<< "Execution time 0: " << duration.count() << " seconds" << endl;
+  cout << "Execution time 0: " << duration.count() << " seconds" << endl;
 
   auto bytesToMB = [](size_t bytes) -> double {
     return static_cast<double>(bytes) / (1024 * 1024);
@@ -539,11 +568,11 @@ void RunOurOpprfwithBPSY() {
 
 int main() {
   RunOurPSU();
-  //RunOurOprf();
-  //RunOurPSUwithBPSY();
-  //RunEQOTE();
-  //RunOurPS();
-  //RunOurOpprf();
-  //RunOurOpprfwithBPSY();
+  // RunOurOprf();
+  // RunOurPSUwithBPSY();
+  // RunEQOTE();
+  // RunOurPS();
+  // RunOurOpprf();
+  // RunOurOpprfwithBPSY();
   return 0;
 }

@@ -26,8 +26,8 @@ using namespace std;
 using namespace std::chrono;
 
 std::vector<uint128_t> OPRFRecv(const std::shared_ptr<yacl::link::Context>& ctx,
-                          std::vector<uint128_t>& elem_hashes,
-                          okvs::Baxos baxos) {
+                                std::vector<uint128_t>& elem_hashes,
+                                okvs::Baxos baxos) {
   size_t okvssize = baxos.size();
   std::vector<std::array<uint128_t, 2>> send_blocks(KAPPA);
   std::future<void> sender = std::async(
@@ -64,12 +64,10 @@ std::vector<uint128_t> OPRFRecv(const std::shared_ptr<yacl::link::Context>& ctx,
       "Send P");
 
   return all_A;
-
 }
 
 void OPRFSend(const std::shared_ptr<yacl::link::Context>& ctx,
-             std::vector<uint128_t>& elem_hashes, okvs::Baxos baxos) {
-
+              std::vector<uint128_t>& elem_hashes, okvs::Baxos baxos) {
   size_t okvssize = baxos.size();
   auto s = yacl::crypto::SecureRandBits(KAPPA);
   uint128_t suint = s.data()[0];
@@ -88,23 +86,18 @@ void OPRFSend(const std::shared_ptr<yacl::link::Context>& ctx,
     aes128_encrypt_batch(all_C[idx], c_keys.data(), elem_hashes[idx]);
   }
 
-
   std::vector<uint128_t> p(okvssize);
   auto buf = ctx->Recv(ctx->PrevRank(), "Receive P");
 
   std::memcpy(p.data(), buf.data(), buf.size());
 
-
-
-
   std::vector<uint128_t> sendermasks(n);
   baxos.Decode(absl::MakeSpan(elem_hashes), absl::MakeSpan(sendermasks),
                absl::MakeSpan(p));
 
-  
-    for (size_t idx = 0; idx < n; ++idx) {
-      sendermasks[idx] = (sendermasks[idx] & suint) ^ all_C[idx];
-    }
+  for (size_t idx = 0; idx < n; ++idx) {
+    sendermasks[idx] = (sendermasks[idx] & suint) ^ all_C[idx];
+  }
 }
 
 }  // namespace oprf
