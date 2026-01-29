@@ -325,8 +325,8 @@ void RunOurPSU() {
   std::vector<uint128_t> fxs;
   std::vector<uint128_t> fxr;
   // Fakessoprf(pi, k, fxs, fxr);
-  auto ssoprfbytes =  RealSsoprf_AltMod_BenchStyle(pi, k, fxs, fxr);
   auto start_time2 = std::chrono::high_resolution_clock::now();
+  auto ssoprfbytes =  RealSsoprf_AltMod_BenchStyle(pi, k, fxs, fxr);
   std::future<std::vector<__uint128_t>> pssender = std::async(
       std::launch::async, [&] { return ps::PSSend(lctxs[0], pi, fxs); });
 
@@ -341,6 +341,7 @@ void RunOurPSU() {
   total_duration = total_duration + duration2;
   //std::vector<bool> eqs;
   //std::vector<bool> eqr;
+  auto start_time3 = std::chrono::high_resolution_clock::now();
   std::vector<uint64_t> rr1u64;
   std::vector<uint64_t> rr2u64;
   std::vector<uint64_t> rsu64(cuckoolen);
@@ -366,7 +367,6 @@ void RunOurPSU() {
   
   //FakePiPEQT(rr1, rr2, rs, pi, eqs, eqr);
 
-  auto start_time3 = std::chrono::high_resolution_clock::now();
   auto shufflecuckoo = ShuffleWithYacl(T_X, pi);
   std::future<void> eqotesender = std::async(std::launch::async, [&] {
     eqote::EQOTESend(lctxs[0], eqs, shufflecuckoo);

@@ -456,7 +456,7 @@ static inline std::vector<bool> EqU64Vec2PC_PreRot(const std::shared_ptr<yacl::l
 
 }  
 
-static std::vector<bool> Party(const std::shared_ptr<yacl::link::Context>& ctx,
+static inline std::vector<bool> Party(const std::shared_ptr<yacl::link::Context>& ctx,
                                   const std::vector<uint64_t>& a_vec) {
   return gmw_eq_vec_u64_prerot::EqU64Vec2PC_PreRot(ctx, ctx->Rank(), a_vec, "GMW_EQ_PREROT");
 }
