@@ -7,8 +7,7 @@
 - **gcc >= 10.3**
 - **[cmake](https://cmake.org/getting-started/)**
 - **[ninja/ninja-build](https://ninja-build.org/)**
-- **[cryptoTools](https://github.com/ladnir/cryptoTools)**
-- **[spu](https://github.com/secretflow/spu)**
+- **[secure-join](https://github.com/ladnir/secure-join)**
 - **Perl 5 with core modules** (Required by [OpenSSL](https://github.com/openssl/openssl/blob/master/INSTALL.md#prerequisites))
 
 ## Build
