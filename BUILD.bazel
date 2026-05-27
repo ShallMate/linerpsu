@@ -2,11 +2,105 @@ load("//bazel:yacl.bzl", "yacl_cc_binary")
 
 package(default_visibility = ["//visibility:public"])
 
+genrule(
+    name = "silent_triple_gen_stationary_archive",
+    srcs = [
+        "GMW/SilentTripleGen.cpp",
+        "GMW/Defines.h",
+        "GMW/SilentTripleGen.h",
+        "GMW/config.h",
+        "@local_libote_stationary//:header_files",
+        "@local_otmpsi_libote_stationary_pic//:headers",
+        "@local_otmpsi_libote_stationary_pic//:libs",
+    ],
+    outs = ["libsilent_triple_gen_stationary_linerpsu.so"],
+    tags = ["no-sandbox"],
+    cmd = """
+set -e
+/usr/bin/g++ \
+  -O3 \
+  -std=c++20 \
+  -fPIC \
+  -fcoroutines \
+  -Wall \
+  -Wextra \
+  -fpermissive \
+  -Wno-sign-compare \
+  -Wno-unused-parameter \
+  -Wno-unused-variable \
+  -fopenmp \
+  -maes \
+  -mbmi2 \
+  -mpclmul \
+  -msse2 \
+  -msse3 \
+  -msse4.1 \
+  -mavx \
+  -mavx2 \
+  -mavx512f \
+  -I. \
+  -Iexternal/local_otmpsi_libote_stationary_pic/rebuild \
+  -Iexternal/local_otmpsi_libote_stationary_pic/rebuild/cryptoTools \
+  -Iexternal/local_otmpsi_libote_stationary_pic/rebuild/coproto \
+  -Iexternal/local_otmpsi_libote_stationary_pic/rebuild/macoro \
+  -Iexternal/local_libote_stationary \
+  -Iexternal/local_libote_stationary/libOTe \
+  -Iexternal/local_libote_stationary/cryptoTools \
+  -Iexternal/local_otmpsi_libote_stationary_pic/deps/coproto \
+  -Iexternal/local_otmpsi_libote_stationary_pic/deps/macoro \
+  -Iexternal/local_libote_stationary/thirdparty \
+  -Iexternal/local_otmpsi_libote_stationary_pic/install/include \
+  -DLIBOTE_HAS_STATIONARY_SILENT_OT \
+  -DENABLE_CIRCUITS \
+  -DLIBDIVIDE_AVX2 \
+  -DBOOST_SYSTEM_NO_LIB \
+  -DBOOST_THREAD_NO_LIB \
+  -DSOLUTION_DIR=\\\"external/local_libote_stationary\\\" \
+  -c $(location GMW/SilentTripleGen.cpp) \
+  -o $(@D)/SilentTripleGen.o
+/usr/bin/g++ \
+  -shared \
+  -fPIC \
+  -fopenmp \
+  -Wl,-Bsymbolic \
+  -Wl,--exclude-libs,ALL \
+  -Wl,--allow-multiple-definition \
+  -o $@ \
+  $(@D)/SilentTripleGen.o \
+  -Wl,--start-group \
+  external/local_otmpsi_libote_stationary_pic/rebuild/libOTe/liblibOTe.a \
+  external/local_otmpsi_libote_stationary_pic/rebuild/cryptoTools/cryptoTools/libcryptoTools.a \
+  external/local_otmpsi_libote_stationary_pic/rebuild/coproto/coproto/libcoproto.a \
+  external/local_otmpsi_libote_stationary_pic/rebuild/macoro/macoro/libmacoro.a \
+  -Wl,--end-group \
+  external/local_otmpsi_libote_stationary_pic/install/lib/libsodium.a \
+  -ldl \
+  -lpthread
+""",
+)
+
+cc_import(
+    name = "silent_triple_gen_stationary",
+    shared_library = "libsilent_triple_gen_stationary_linerpsu.so",
+)
+
 yacl_cc_binary(
     name = "ourpsu",
     srcs = [
         "main.cc",
         "utils.h",
+        "securejoin_oc_compat.h",
+        "benchmark_stats.h",
+        "psu_bench_config.h",
+        "oc_compat_types.h",
+        "coproto_asio_globals.h",
+        "debug_logging.h",
+        "local_comm_stats.h",
+        "socket_io.h",
+        "peqt_coproto_globals.cc",
+        "peqt_gmw.h",
+        "permuted_peqt.h",
+        "stage_timing.h",
         "cuckoohash.h",
         "psu.h",
         "psu.cc",
@@ -16,28 +110,43 @@ yacl_cc_binary(
         "ps.cc",
         "eqote.h",
         "eqote.cc",
-        "oprf.h",
-        "oprf.cc",
         "gmw.h",
+        "GMW/config.h",
+        "GMW/Defines.h",
+        "GMW/Circuit.h",
+        "GMW/Circuit.cpp",
+        "GMW/Gmw.h",
+        "GMW/Gmw.cpp",
+        "GMW/SilentTripleGen.h",
     ],
     deps = [
+        ":silent_triple_gen_stationary",
+        "@local_secure_join_usr//:securejoin",
+        "@local_secure_join_usr//:securejoin_libs",
         "//examples/linerpsu/okvs:baxos",
         "//examples/linerpsu/okvs:galois128",
+        "//yacl/base:byte_container_view",
+        "//yacl/base:dynamic_bitset",
+        "//yacl/base:exception",
         "//yacl/base:int128",
         "//yacl/crypto/hash:blake3",
         "//yacl/crypto/hash:hash_utils",
         "//yacl/crypto/rand:rand",
-        "//yacl/kernel/algorithms:base_ot",
-        "//yacl/kernel/algorithms:softspoken_ote",
         "//yacl/math/f2k:f2k",
         "//yacl/utils:parallel",
     ],
     defines = [
+        "COPROTO_ENABLE_BOOST",
         "LIBDIVIDE_AVX2",
     ],
     copts = [
         "-O3",
         "-std=c++20",
+        "-Wno-error=unused-parameter",
+        "-Wno-error=redundant-move",
+        "-Wno-error=ignored-qualifiers",
+        "-Wno-error=deprecated-copy",
+        "-Wno-error",
         "-Wall",
         "-Wextra",
         "-fopenmp",
@@ -47,19 +156,37 @@ yacl_cc_binary(
         "-msse4.1",
         "-mavx",
         "-mavx2",
-        "-I/usr/local/include/secureJoin",
+        "-Iexternal/local_secure_join_usr/out/libOTe/thirdparty",
+        "-Iexternal/local_secure_join_usr/out/coproto",
+        "-Iexternal/local_secure_join_usr/out/macoro",
+        "-Iexternal/local_secure_join_usr/out/libOTe/cryptoTools",
+        "-Iexternal/local_secure_join_usr/out/libOTe",
+        "-I/usr/local/include/securejoin/out/libOTe/thirdparty",
+        "-I/usr/local/include/secure-join/out/libOTe/thirdparty",
     ],
     linkopts = [
+        "-no-pie",
+        "-Wl,--allow-multiple-definition",
         "-fopenmp",
         "-L/usr/local/lib",
         "-Wl,--start-group",
-        "-lsecureJoin",
         "-llibOTe",
+        "-lSimplestOT",
+        "-lKyberOT",
+        "-lbitpolymul",
+        "-lrelic_s",
         "-lcryptoTools",
         "-lmacoro",
         "-lcoproto",
         "-Wl,--end-group",
+        "-lntl",
+        "-lgmp",
+        "-lssl",
+        "-lcrypto",
         "-lsodium",
+        "-ldl",
+        "-lboost_system",
+        "-lboost_thread",
         "-lpthread",
     ],
 )

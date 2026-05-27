@@ -1,20 +1,25 @@
 
 #include <sys/types.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "examples/linerpsu/bokvs.h"
 #include "examples/linerpsu/cuckoohash.h"
+#include "examples/linerpsu/debug_logging.h"
 #include "examples/linerpsu/okvs/baxos.h"
+#include "examples/linerpsu/socket_io.h"
 #include "examples/linerpsu/utils.h"
+#include "cryptoTools/Common/BitVector.h"
+#include "cryptoTools/Crypto/PRNG.h"
+#include "libOTe/Base/BaseOT.h"
 #include "yacl/base/dynamic_bitset.h"
 #include "yacl/base/int128.h"
 #include "yacl/crypto/hash/hash_utils.h"
 #include "yacl/crypto/rand/rand.h"
-#include "yacl/kernel/algorithms/base_ot.h"
-#include "yacl/link/test_util.h"
 #include "yacl/utils/serialize.h"
 
 namespace psu {
@@ -25,25 +30,69 @@ using namespace yacl::crypto;
 using namespace std;
 using namespace std::chrono;
 
-std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
-                               std::vector<uint128_t>& elem_hashes,
+namespace {
+
+void BaseOtSend(coproto::Socket& sock,
+                std::vector<std::array<uint128_t, 2>>* out) {
+  debug::Log("base ot send start");
+  std::vector<std::array<block, 2>> send_blocks(KAPPA);
+  osuCrypto::DefaultBaseOT base_ot;
+  osuCrypto::PRNG prng(osuCrypto::sysRandomSeed());
+  coproto::sync_wait(base_ot.send(send_blocks, prng, sock));
+  linerpsu::socket_io::Flush(sock);
+  out->resize(KAPPA);
+  for (size_t i = 0; i < KAPPA; ++i) {
+    (*out)[i][0] = BlockToU128(send_blocks[i][0]);
+    (*out)[i][1] = BlockToU128(send_blocks[i][1]);
+  }
+  debug::Log("base ot send done");
+}
+
+void BaseOtRecv(coproto::Socket& sock, osuCrypto::BitVector* choices,
+                uint128_t* choice_mask, std::vector<uint128_t>* out) {
+  debug::Log("base ot recv start");
+  choices->resize(KAPPA);
+  osuCrypto::PRNG prng(osuCrypto::sysRandomSeed());
+  choices->randomize(prng);
+  *choice_mask = 0;
+  for (size_t i = 0; i < KAPPA; ++i) {
+    if ((*choices)[i]) {
+      *choice_mask |= (static_cast<uint128_t>(1) << i);
+    }
+  }
+
+  std::vector<block> recv_blocks(KAPPA);
+  osuCrypto::DefaultBaseOT base_ot;
+  coproto::sync_wait(base_ot.receive(*choices, recv_blocks, prng, sock));
+  linerpsu::socket_io::Flush(sock);
+  out->resize(KAPPA);
+  for (size_t i = 0; i < KAPPA; ++i) {
+    (*out)[i] = BlockToU128(recv_blocks[i]);
+  }
+  debug::Log("base ot recv done");
+}
+
+}  // namespace
+
+std::vector<uint128_t> PSUSend(coproto::Socket& sock,
+                               std::vector<uint128_t> elem_hashes,
                                CuckooHash& T_X, uint32_t cuckoolen,
                                okvs::Baxos baxos, okvs::Baxos baxos2) {
   uint128_t r = yacl::crypto::FastRandU128();
   // Generate a random seed omega_1 for the first hash
-  ctx->SendAsync(ctx->NextRank(), yacl::SerializeUint128(r), "r");
+  debug::Log("psu send r");
+  linerpsu::socket_io::SendValue(sock, r);
   // cout<< "cuckoolen: " << cuckoolen << endl;
 
-  T_X.Insert(elem_hashes);
+  T_X.Insert(std::move(elem_hashes));
   T_X.Transform(r);
 
   size_t okvssize = baxos.size();
-  uint128_t t1 = DeserializeUint128(ctx->Recv(ctx->PrevRank(), "t1"));
+  debug::Log("psu send wait t1");
+  uint128_t t1 = linerpsu::socket_io::RecvValue<uint128_t>(sock);
 
-  std::vector<std::array<uint128_t, 2>> send_blocks(KAPPA);
-  std::future<void> sender = std::async(
-      [&] { yacl::crypto::BaseOtSend(ctx, absl::MakeSpan(send_blocks)); });
-  sender.get();
+  std::vector<std::array<uint128_t, 2>> send_blocks;
+  BaseOtSend(sock, &send_blocks);
   // === Extract OT keys ===
   std::vector<uint128_t> a_keys(KAPPA);
   std::vector<uint128_t> b_keys(KAPPA);
@@ -58,9 +107,9 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
   std::vector<uint128_t> all_A(n);
   std::vector<uint128_t> all_B(n);
   std::vector<uint128_t> all_D(n);
+  aes128_encrypt_many(all_A.data(), a_keys.data(), T_X.bins_.data(), n);
+  aes128_encrypt_many(all_B.data(), b_keys.data(), T_X.bins_.data(), n);
   for (size_t idx = 0; idx < n; ++idx) {
-    aes128_encrypt_batch(all_A[idx], a_keys.data(), T_X.bins_[idx]);
-    aes128_encrypt_batch(all_B[idx], b_keys.data(), T_X.bins_[idx]);
     all_D[idx] = all_A[idx] ^ all_B[idx];
   }
 
@@ -69,14 +118,12 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
   baxos.Solve(absl::MakeSpan(T_X.bins_), absl::MakeSpan(all_D),
               absl::MakeSpan(p), nullptr);
 
-  ctx->SendAsync(
-      ctx->NextRank(),
-      yacl::ByteContainerView(p.data(), p.size() * sizeof(uint128_t)),
-      "Send P");
+  debug::Log("psu send P");
+  linerpsu::socket_io::SendVector(sock, p);
 
   uint128_t omega_2 = yacl::crypto::FastRandU128();
-  ctx->SendAsync(ctx->NextRank(), yacl::SerializeUint128(omega_2), "omega_2");
-  uint128_t omega_1 = DeserializeUint128(ctx->Recv(ctx->PrevRank(), "omega_1"));
+  linerpsu::socket_io::SendValue(sock, omega_2);
+  uint128_t omega_1 = linerpsu::socket_io::RecvValue<uint128_t>(sock);
   uint128_t t_11 = yacl::crypto::Blake3_128(yacl::SerializeUint128(omega_1));
   if (t1 != t_11) {
     throw std::runtime_error("t1 mismatch");
@@ -86,10 +133,10 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
   for (size_t idx = 0; idx < n; ++idx) {
     receivermasks[idx] = all_A[idx] ^ omega;
   }
-  uint128_t okvssize2 = baxos2.size();
+  size_t okvssize2 = baxos2.size();
   std::vector<uint128_t> pp(okvssize2);
-  auto buf = ctx->Recv(ctx->PrevRank(), "Receive PP");
-  std::memcpy(pp.data(), buf.data(), buf.size());
+  debug::Log("psu send wait PP");
+  pp = linerpsu::socket_io::RecvVector<uint128_t>(sock, okvssize2);
   std::vector<uint128_t> rs(cuckoolen);
   baxos2.Decode(absl::MakeSpan(T_X.bins_), absl::MakeSpan(rs),
                 absl::MakeSpan(pp));
@@ -99,12 +146,13 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
   return rs;
 }
 
-std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
-                               std::vector<uint128_t>& elem_hashes,
+std::vector<uint128_t> PSURecv(coproto::Socket& sock,
+                               const std::vector<uint128_t>& elem_hashes,
                                uint32_t cuckoolen, okvs::Baxos baxos,
                                okvs::Baxos baxos2) {
   // cout<< "cuckoolen: " << cuckoolen << endl;
-  uint128_t r = DeserializeUint128(ctx->Recv(ctx->PrevRank(), "r"));
+  debug::Log("psu recv wait r");
+  uint128_t r = linerpsu::socket_io::RecvValue<uint128_t>(sock);
   std::vector<uint128_t> T_Y(elem_hashes.size() * 3);
 
   std::vector<uint128_t> rs = RandVec<uint128_t>(cuckoolen);
@@ -127,34 +175,30 @@ std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
 
   uint128_t omega_1 = yacl::crypto::FastRandU128();
   uint128_t t_1 = yacl::crypto::Blake3_128(yacl::SerializeUint128(omega_1));
-  ctx->SendAsync(ctx->NextRank(), yacl::SerializeUint128(t_1), "t_1");
+  debug::Log("psu recv send t1");
+  linerpsu::socket_io::SendValue(sock, t_1);
 
   size_t okvssize = baxos.size();
-  auto s = yacl::crypto::SecureRandBits(KAPPA);
-  uint128_t suint = s.data()[0];
 
   // === OT Recv ===
-  std::vector<uint128_t> c_keys(KAPPA);
-  std::future<void> receiver = std::async(
-      [&] { yacl::crypto::BaseOtRecv(ctx, s, absl::MakeSpan(c_keys)); });
-  receiver.get();
+  osuCrypto::BitVector choices;
+  uint128_t suint = 0;
+  std::vector<uint128_t> c_keys;
+  BaseOtRecv(sock, &choices, &suint, &c_keys);
 
   // === AES Encrypt ===
   size_t n = T_Y.size();
 
   std::vector<uint128_t> all_C(n);
-  for (size_t idx = 0; idx < n; ++idx) {
-    aes128_encrypt_batch(all_C[idx], c_keys.data(), T_Y[idx]);
-  }
-  std::vector<uint128_t> p(okvssize);
-  auto buf = ctx->Recv(ctx->PrevRank(), "Receive P");
-
-  std::memcpy(p.data(), buf.data(), buf.size());
+  aes128_encrypt_many(all_C.data(), c_keys.data(), T_Y.data(), n);
+  debug::Log("psu recv wait P");
+  std::vector<uint128_t> p =
+      linerpsu::socket_io::RecvVector<uint128_t>(sock, okvssize);
 
   // Receive omega_2
-  uint128_t omega_2 = DeserializeUint128(ctx->Recv(ctx->PrevRank(), "omega_2"));
+  uint128_t omega_2 = linerpsu::socket_io::RecvValue<uint128_t>(sock);
 
-  ctx->SendAsync(ctx->NextRank(), yacl::SerializeUint128(omega_1), "omega_1");
+  linerpsu::socket_io::SendValue(sock, omega_1);
   uint128_t omega = omega_1 ^ omega_2;
 
   std::vector<uint128_t> sendermasks(n);
@@ -165,35 +209,32 @@ std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
         RS[idx] ^ ((sendermasks[idx] & suint) ^ all_C[idx] ^ omega);
   }
 
-  uint128_t okvssize2 = baxos2.size();
+  size_t okvssize2 = baxos2.size();
   std::vector<uint128_t> pp(okvssize2);
   baxos2.Solve(absl::MakeSpan(T_Y), absl::MakeSpan(sendermasks),
                absl::MakeSpan(pp), nullptr);
-  ctx->SendAsync(
-      ctx->NextRank(),
-      yacl::ByteContainerView(pp.data(), pp.size() * sizeof(uint128_t)), "PP");
+  debug::Log("psu recv send PP");
+  linerpsu::socket_io::SendVector(sock, pp);
   return rs;
 }
 
-std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
-                               std::vector<uint128_t>& elem_hashes,
+std::vector<uint128_t> PSUSend(coproto::Socket& sock,
+                               std::vector<uint128_t> elem_hashes,
                                CuckooHash& T_X, uint32_t cuckoolen,
                                OKVSBK baxos, OKVSBK baxos2) {
   uint128_t r = yacl::crypto::FastRandU128();
   // Generate a random seed omega_1 for the first hash
-  ctx->SendAsync(ctx->NextRank(), yacl::SerializeUint128(r), "r");
+  linerpsu::socket_io::SendValue(sock, r);
   // cout<< "cuckoolen: " << cuckoolen << endl;
 
-  T_X.Insert(elem_hashes);
+  T_X.Insert(std::move(elem_hashes));
   T_X.Transform(r);
 
   size_t okvssize = baxos.getM();
-  uint128_t t1 = DeserializeUint128(ctx->Recv(ctx->PrevRank(), "t1"));
+  uint128_t t1 = linerpsu::socket_io::RecvValue<uint128_t>(sock);
 
-  std::vector<std::array<uint128_t, 2>> send_blocks(KAPPA);
-  std::future<void> sender = std::async(
-      [&] { yacl::crypto::BaseOtSend(ctx, absl::MakeSpan(send_blocks)); });
-  sender.get();
+  std::vector<std::array<uint128_t, 2>> send_blocks;
+  BaseOtSend(sock, &send_blocks);
   // === Extract OT keys ===
   std::vector<uint128_t> a_keys(KAPPA);
   std::vector<uint128_t> b_keys(KAPPA);
@@ -208,9 +249,9 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
   std::vector<uint128_t> all_A(n);
   std::vector<uint128_t> all_B(n);
   std::vector<uint128_t> all_D(n);
+  aes128_encrypt_many(all_A.data(), a_keys.data(), T_X.bins_.data(), n);
+  aes128_encrypt_many(all_B.data(), b_keys.data(), T_X.bins_.data(), n);
   for (size_t idx = 0; idx < n; ++idx) {
-    aes128_encrypt_batch(all_A[idx], a_keys.data(), T_X.bins_[idx]);
-    aes128_encrypt_batch(all_B[idx], b_keys.data(), T_X.bins_[idx]);
     all_D[idx] = all_A[idx] ^ all_B[idx];
   }
 
@@ -218,14 +259,11 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
 
   baxos.Encode(T_X.bins_, all_D);
 
-  ctx->SendAsync(ctx->NextRank(),
-                 yacl::ByteContainerView(baxos.p_.data(),
-                                         baxos.p_.size() * sizeof(uint128_t)),
-                 "Send P");
+  linerpsu::socket_io::SendVector(sock, baxos.p_);
 
   uint128_t omega_2 = yacl::crypto::FastRandU128();
-  ctx->SendAsync(ctx->NextRank(), yacl::SerializeUint128(omega_2), "omega_2");
-  uint128_t omega_1 = DeserializeUint128(ctx->Recv(ctx->PrevRank(), "omega_1"));
+  linerpsu::socket_io::SendValue(sock, omega_2);
+  uint128_t omega_1 = linerpsu::socket_io::RecvValue<uint128_t>(sock);
   uint128_t t_11 = yacl::crypto::Blake3_128(yacl::SerializeUint128(omega_1));
   if (t1 != t_11) {
     throw std::runtime_error("t1 mismatch");
@@ -235,10 +273,9 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
   for (size_t idx = 0; idx < n; ++idx) {
     receivermasks[idx] = all_A[idx] ^ omega;
   }
-  uint128_t okvssize2 = baxos2.getM();
+  size_t okvssize2 = baxos2.getM();
   std::vector<uint128_t> pp(okvssize2);
-  auto buf = ctx->Recv(ctx->PrevRank(), "Receive PP");
-  std::memcpy(pp.data(), buf.data(), buf.size());
+  pp = linerpsu::socket_io::RecvVector<uint128_t>(sock, okvssize2);
   std::vector<uint128_t> rs(cuckoolen);
   baxos2.DecodeDifflenP(T_X.bins_, rs, pp);
   for (size_t idx = 0; idx < n; ++idx) {
@@ -247,12 +284,12 @@ std::vector<uint128_t> PSUSend(const std::shared_ptr<yacl::link::Context>& ctx,
   return rs;
 }
 
-std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
-                               std::vector<uint128_t>& elem_hashes,
+std::vector<uint128_t> PSURecv(coproto::Socket& sock,
+                               const std::vector<uint128_t>& elem_hashes,
                                uint32_t cuckoolen, OKVSBK baxos,
                                OKVSBK baxos2) {
   // cout<< "cuckoolen: " << cuckoolen << endl;
-  uint128_t r = DeserializeUint128(ctx->Recv(ctx->PrevRank(), "r"));
+  uint128_t r = linerpsu::socket_io::RecvValue<uint128_t>(sock);
   std::vector<uint128_t> T_Y(elem_hashes.size() * 3);
 
   std::vector<uint128_t> rs = RandVec<uint128_t>(cuckoolen);
@@ -275,34 +312,28 @@ std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
 
   uint128_t omega_1 = yacl::crypto::FastRandU128();
   uint128_t t_1 = yacl::crypto::Blake3_128(yacl::SerializeUint128(omega_1));
-  ctx->SendAsync(ctx->NextRank(), yacl::SerializeUint128(t_1), "t_1");
+  linerpsu::socket_io::SendValue(sock, t_1);
 
   size_t okvssize = baxos.getM();
-  auto s = yacl::crypto::SecureRandBits(KAPPA);
-  uint128_t suint = s.data()[0];
 
   // === OT Recv ===
-  std::vector<uint128_t> c_keys(KAPPA);
-  std::future<void> receiver = std::async(
-      [&] { yacl::crypto::BaseOtRecv(ctx, s, absl::MakeSpan(c_keys)); });
-  receiver.get();
+  osuCrypto::BitVector choices;
+  uint128_t suint = 0;
+  std::vector<uint128_t> c_keys;
+  BaseOtRecv(sock, &choices, &suint, &c_keys);
 
   // === AES Encrypt ===
   size_t n = T_Y.size();
 
   std::vector<uint128_t> all_C(n);
-  for (size_t idx = 0; idx < n; ++idx) {
-    aes128_encrypt_batch(all_C[idx], c_keys.data(), T_Y[idx]);
-  }
-  std::vector<uint128_t> p(okvssize);
-  auto buf = ctx->Recv(ctx->PrevRank(), "Receive P");
-
-  std::memcpy(p.data(), buf.data(), buf.size());
+  aes128_encrypt_many(all_C.data(), c_keys.data(), T_Y.data(), n);
+  std::vector<uint128_t> p =
+      linerpsu::socket_io::RecvVector<uint128_t>(sock, okvssize);
 
   // Receive omega_2
-  uint128_t omega_2 = DeserializeUint128(ctx->Recv(ctx->PrevRank(), "omega_2"));
+  uint128_t omega_2 = linerpsu::socket_io::RecvValue<uint128_t>(sock);
 
-  ctx->SendAsync(ctx->NextRank(), yacl::SerializeUint128(omega_1), "omega_1");
+  linerpsu::socket_io::SendValue(sock, omega_1);
   uint128_t omega = omega_1 ^ omega_2;
 
   std::vector<uint128_t> sendermasks(n);
@@ -313,10 +344,7 @@ std::vector<uint128_t> PSURecv(const std::shared_ptr<yacl::link::Context>& ctx,
   }
 
   baxos2.Encode(T_Y, sendermasks);
-  ctx->SendAsync(ctx->NextRank(),
-                 yacl::ByteContainerView(baxos2.p_.data(),
-                                         baxos2.p_.size() * sizeof(uint128_t)),
-                 "PP");
+  linerpsu::socket_io::SendVector(sock, baxos2.p_);
   return rs;
 }
 }  // namespace psu

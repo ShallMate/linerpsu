@@ -124,7 +124,7 @@ static constexpr uint64_t kSeedKeys10 = 0xFEDCBA9876543210ULL;  // dir10 keys
 static constexpr uint64_t kSeedChoice01 = 0x0F0E0D0C0B0A0908ULL; // dir01 receiver choice
 static constexpr uint64_t kSeedChoice10 = 0x8070605040302010ULL; // dir10 receiver choice
 
-static inline void FillFakeSendStore(yacl::crypto::OtSendStore* st,
+static inline void FillSendStore(yacl::crypto::OtSendStore* st,
                                      size_t n, uint64_t seed_keys) {
   yacl::parallel_for(0, n, [&](size_t begin, size_t end) {
     for (size_t i = begin; i < end; ++i) {
@@ -136,7 +136,7 @@ static inline void FillFakeSendStore(yacl::crypto::OtSendStore* st,
   });
 }
 
-static inline void FillFakeRecvStore(yacl::crypto::OtRecvStore* rt,
+static inline void FillRecvStore(yacl::crypto::OtRecvStore* rt,
                                      yacl::dynamic_bitset<>* r_bits,
                                      size_t n, uint64_t seed_keys, uint64_t seed_choice) {
   r_bits->resize(n);
@@ -158,7 +158,7 @@ static inline void PrecomputeAllRot(int rank, size_t total_ots,
     dir01->is_sender = true;
     {
       auto st = yacl::crypto::OtSendStore(total_ots, yacl::crypto::OtStoreType::Normal);
-      FillFakeSendStore(&st, total_ots, kSeedKeys01);
+      FillSendStore(&st, total_ots, kSeedKeys01);
       dir01->send = std::make_unique<yacl::crypto::OtSendStore>(std::move(st));
     }
     dir01->cursor = 0;
@@ -167,7 +167,7 @@ static inline void PrecomputeAllRot(int rank, size_t total_ots,
     dir10->is_receiver = true;
     {
       auto rt = yacl::crypto::OtRecvStore(total_ots, yacl::crypto::OtStoreType::Normal);
-      FillFakeRecvStore(&rt, &dir10->r, total_ots, kSeedKeys10, kSeedChoice10);
+      FillRecvStore(&rt, &dir10->r, total_ots, kSeedKeys10, kSeedChoice10);
       dir10->recv = std::make_unique<yacl::crypto::OtRecvStore>(std::move(rt));
     }
     dir10->cursor = 0;
@@ -177,7 +177,7 @@ static inline void PrecomputeAllRot(int rank, size_t total_ots,
     dir01->is_receiver = true;
     {
       auto rt = yacl::crypto::OtRecvStore(total_ots, yacl::crypto::OtStoreType::Normal);
-      FillFakeRecvStore(&rt, &dir01->r, total_ots, kSeedKeys01, kSeedChoice01);
+      FillRecvStore(&rt, &dir01->r, total_ots, kSeedKeys01, kSeedChoice01);
       dir01->recv = std::make_unique<yacl::crypto::OtRecvStore>(std::move(rt));
     }
     dir01->cursor = 0;
@@ -186,7 +186,7 @@ static inline void PrecomputeAllRot(int rank, size_t total_ots,
     dir10->is_sender = true;
     {
       auto st = yacl::crypto::OtSendStore(total_ots, yacl::crypto::OtStoreType::Normal);
-      FillFakeSendStore(&st, total_ots, kSeedKeys10);
+      FillSendStore(&st, total_ots, kSeedKeys10);
       dir10->send = std::make_unique<yacl::crypto::OtSendStore>(std::move(st));
     }
     dir10->cursor = 0;
