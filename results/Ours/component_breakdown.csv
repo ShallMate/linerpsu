@@ -1,0 +1,11 @@
+component,metric,2^18,2^20,2^22
+Hashing+OPPRF,Time (s),0.791302,4.481910,24.304400
+Hashing+OPPRF,Communication (MB),26.551400,104.612000,415.387000
+Permute+Share (Offline),Time (s),0.516470,1.960155,7.880431
+Permute+Share (Offline),Communication (MB),81.341900,325.201000,1300.640000
+Permute+Share (Online),Time (s),0.114825,0.371922,1.675450
+Permute+Share (Online),Communication (MB),5.079990,20.320000,81.280000
+PEQT,Time (s),2.723190,11.482960,40.933024
+PEQT,Communication (MB),11.443300,45.313310,181.083800
+EQOTE,Time (s),0.072887,0.248603,0.984371
+EQOTE,Communication (MB),10.304400,40.917100,163.327000
