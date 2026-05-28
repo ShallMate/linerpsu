@@ -1,0 +1,11 @@
+ns: 4194304, nr: 4194304, diff: 10
+intersection size: 4194294
+cuckoo hash table size: 5326766
+okvs backend: okvs
+LINERPSU_HASH_OPPRF_RESULT,logn=22,ns=4194304,nr=4194304,diff=10,cuckoolen=5326766,okvs_backend=okvs,time_s=20.2613,comm_bytes=435560096,sender_masks=5326766,receiver_masks=5326766
+Hashing+OPPRF time: 20.2613 seconds
+Hashing+OPPRF sender sent: 100.58 MB
+Hashing+OPPRF sender received: 314.803 MB
+Hashing+OPPRF receiver sent: 314.803 MB
+Hashing+OPPRF receiver received: 100.58 MB
+Hashing+OPPRF total communication: 415.382 MB

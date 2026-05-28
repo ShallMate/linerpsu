@@ -1,0 +1,5 @@
+construction,metric,2^18,2^20,2^22
+Default,Time (s),4.68562,19.566,83.0808
+Default,Communication (MB),133.596201,531.424432,2121.921228
+With bpsy23,Time (s),4.76967,19.1001,78.958
+With bpsy23,Communication (MB),124.649073,497.193612,1988.024195

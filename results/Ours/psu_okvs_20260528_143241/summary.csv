@@ -1,0 +1,7 @@
+backend,backend_label,logn,ns,nr,cuckoolen,status,offline_s,online_s,total_s,total_comm_bytes,total_comm_mb,result_size,console_log
+okvs,Default,18,262144,262144,332922,ok,3.72303,0.962593,4.68562,140085770,133.596201,262154,/home/lgw/yacl/examples/linerpsu/results/Ours/psu_okvs_20260528_143241/okvs_logn18.log
+okvs,Default,20,1048576,1048576,1331691,ok,14.9636,4.60236,19.566,557238905,531.424432,1048586,/home/lgw/yacl/examples/linerpsu/results/Ours/psu_okvs_20260528_143241/okvs_logn20.log
+okvs,Default,22,4194304,4194304,5326766,ok,59.998,23.0828,83.0808,2224995674,2121.921228,4194314,/home/lgw/yacl/examples/linerpsu/results/Ours/psu_okvs_20260528_143241/okvs_logn22.log
+bandokvs,With bpsy23,18,262144,262144,332922,ok,3.66648,1.1032,4.76967,130704026,124.649073,262154,/home/lgw/yacl/examples/linerpsu/results/Ours/psu_okvs_20260528_143241/bandokvs_logn18.log
+bandokvs,With bpsy23,20,1048576,1048576,1331691,ok,14.5942,4.50586,19.1001,521345289,497.193612,1048586,/home/lgw/yacl/examples/linerpsu/results/Ours/psu_okvs_20260528_143241/bandokvs_logn20.log
+bandokvs,With bpsy23,22,4194304,4194304,5326766,ok,60.848,18.11,78.958,2084594458,1988.024195,4194314,/home/lgw/yacl/examples/linerpsu/results/Ours/psu_okvs_20260528_143241/bandokvs_logn22.log

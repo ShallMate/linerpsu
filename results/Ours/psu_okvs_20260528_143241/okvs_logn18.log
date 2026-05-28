@@ -1,0 +1,10 @@
+ns: 262144, nr: 262144, diff: 10
+intersection size: 262134
+cuckoo hash table size: 332922
+okvs backend: okvs
+LINERPSU_HASH_OPPRF_RESULT,logn=18,ns=262144,nr=262144,diff=10,cuckoolen=332922,okvs_backend=okvs,time_s=0.750426,comm_bytes=27836080,sender_masks=332922,receiver_masks=332922
+Offline time: 3.72303 seconds
+Online time: 0.962593 seconds
+Total execution time (offline + online): 4.68562 seconds
+Number of PSU results: 262154
+LINERPSU_RESULT,logn=18,ns=262144,nr=262144,diff=10,cuckoolen=332922,okvs_backend=okvs,offline_s=3.72303,online_s=0.962593,total_s=4.68562,offline_comm_bytes=85628741,online_comm_bytes=54457029,total_comm_bytes=140085770,result_size=262154

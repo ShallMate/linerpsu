@@ -1,0 +1,10 @@
+ns: 4194304, nr: 4194304, diff: 10
+intersection size: 4194294
+cuckoo hash table size: 5326766
+okvs backend: bandokvs
+LINERPSU_HASH_OPPRF_RESULT,logn=22,ns=4194304,nr=4194304,diff=10,cuckoolen=5326766,okvs_backend=bandokvs,time_s=15.1795,comm_bytes=295158880,sender_masks=5326766,receiver_masks=5326766
+Offline time: 60.848 seconds
+Online time: 18.11 seconds
+Total execution time (offline + online): 78.958 seconds
+Number of PSU results: 4194314
+LINERPSU_RESULT,logn=22,ns=4194304,nr=4194304,diff=10,cuckoolen=5326766,okvs_backend=bandokvs,offline_s=60.848,online_s=18.11,total_s=78.958,offline_comm_bytes=1365144703,online_comm_bytes=719449755,total_comm_bytes=2084594458,result_size=4194314
