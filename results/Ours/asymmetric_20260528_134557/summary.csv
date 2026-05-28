@@ -1,0 +1,7 @@
+sender_logn,receiver_logn,ns,nr,setting,status,time_s,communication_mb,total_comm_bytes,offline_s,online_s,offline_comm_bytes,online_comm_bytes,result_size,console_log
+22,12,4194304,4096,n1 >> n2,ok,58.1391,1827.149930,1915905565,47.9747,10.1644,1385893234,530012331,4194314,/home/lgw/yacl/examples/linerpsu/results/Ours/asymmetric_20260528_134557/n1_2p22_n2_2p12.log
+12,22,4096,4194304,n1 << n2,ok,4.61578,295.494646,309848594,0.155241,4.46054,1585778,308262816,4194314,/home/lgw/yacl/examples/linerpsu/results/Ours/asymmetric_20260528_134557/n1_2p12_n2_2p22.log
+20,10,1048576,1024,n1 >> n2,ok,13.8535,457.272618,479485093,11.8445,2.00905,346560994,132924099,1048586,/home/lgw/yacl/examples/linerpsu/results/Ours/asymmetric_20260528_134557/n1_2p20_n2_2p10.log
+10,20,1024,1048576,n1 << n2,ok,1.25263,90.709055,95115338,0.0844568,1.16817,498418,94616920,1048586,/home/lgw/yacl/examples/linerpsu/results/Ours/asymmetric_20260528_134557/n1_2p10_n2_2p20.log
+18,8,262144,256,n1 >> n2,ok,3.70864,114.714881,120287271,3.29035,0.418297,86803090,33484181,262154,/home/lgw/yacl/examples/linerpsu/results/Ours/asymmetric_20260528_134557/n1_2p18_n2_2p8.log
+8,18,256,262144,n1 << n2,ok,0.474032,32.363342,33935424,0.0723892,0.401643,226018,33709406,262154,/home/lgw/yacl/examples/linerpsu/results/Ours/asymmetric_20260528_134557/n1_2p8_n2_2p18.log

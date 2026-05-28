@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "examples/linerpsu/bench_items.h"
 #include "examples/linerpsu/benchmark_stats.h"
 #include "examples/linerpsu/cuckoohash.h"
 #include "examples/linerpsu/eqote.h"
@@ -27,15 +28,6 @@ using namespace std;
 using namespace std::chrono;
 
 namespace {
-
-std::vector<uint128_t> CreateRangeItems(size_t begin, size_t size) {
-  std::vector<uint128_t> ret;
-  ret.reserve(size);
-  for (size_t i = 0; i < size; ++i) {
-    ret.push_back(yacl::crypto::Blake3_128(std::to_string(begin + i)));
-  }
-  return ret;
-}
 
 linerpsu::bench::TrafficStats SocketTrafficDiff(
     const linerpsu::bench::TrafficStats& begin, coproto::Socket& sender_sock,
@@ -74,16 +66,13 @@ void PrintResultLine(uint64_t logn, uint64_t ns, uint64_t nr, uint64_t diff,
 
 void RunOurPSU() {
   auto opts = linerpsu::bench_config::LoadPsuOptions();
-  YACL_ENFORCE(opts.ns == opts.nr,
-               "current linerpsu benchmark expects equal party sizes");
   const uint64_t ns = opts.ns;
   const uint64_t nr = opts.nr;
   const uint64_t diff = opts.diff;
 
-  std::vector<uint128_t> common = CreateRangeItems(0, ns - diff);
-  std::vector<uint128_t> unique_a = CreateRangeItems(ns - diff, diff);
-  std::vector<uint128_t> unique_b = CreateRangeItems(ns, diff);
+  auto item_sets = linerpsu::bench_items::CreateBenchmarkItemSets(ns, nr, diff);
   cout << "ns: " << ns << ", nr: " << nr << ", diff: " << diff << endl;
+  cout << "intersection size: " << item_sets.intersection_size << endl;
   uint32_t cuckoolen = static_cast<uint32_t>(ns * 1.27);
   cout << "cuckoo hash table size: " << cuckoolen << endl;
 
@@ -107,10 +96,8 @@ void RunOurPSU() {
   baxos2.Init(nr * 3, bin_size * 3, weight, ssp,
               okvs::PaxosParam::DenseType::GF128, seed);
 
-  std::vector<uint128_t> items_a = common;
-  items_a.insert(items_a.end(), unique_a.begin(), unique_a.end());
-  std::vector<uint128_t> items_b = common;
-  items_b.insert(items_b.end(), unique_b.begin(), unique_b.end());
+  std::vector<uint128_t> items_a = std::move(item_sets.sender);
+  std::vector<uint128_t> items_b = std::move(item_sets.receiver);
 
   auto sockets =
       linerpsu::socket_io::ConnectSocketPair(linerpsu::socket_io::PsuBaseAddress());

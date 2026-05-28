@@ -1,0 +1,8 @@
+ns: 262144, nr: 256, diff: 10
+intersection size: 246
+cuckoo hash table size: 332922
+Offline time: 3.29035 seconds
+Online time: 0.418297 seconds
+Total execution time (offline + online): 3.70864 seconds
+Number of PSU results: 262154
+LINERPSU_RESULT,logn=18,ns=262144,nr=256,diff=10,cuckoolen=332922,offline_s=3.29035,online_s=0.418297,total_s=3.70864,offline_comm_bytes=86803090,online_comm_bytes=33484181,total_comm_bytes=120287271,result_size=262154

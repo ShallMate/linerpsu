@@ -88,6 +88,7 @@ yacl_cc_binary(
     name = "ourpsu",
     srcs = [
         "main.cc",
+        "bench_items.h",
         "utils.h",
         "securejoin_oc_compat.h",
         "benchmark_stats.h",
