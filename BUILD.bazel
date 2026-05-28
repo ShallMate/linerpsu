@@ -96,6 +96,7 @@ yacl_cc_binary(
         "coproto_asio_globals.h",
         "debug_logging.h",
         "local_comm_stats.h",
+        "opprf_hash.h",
         "socket_io.h",
         "peqt_coproto_globals.cc",
         "peqt_gmw.h",

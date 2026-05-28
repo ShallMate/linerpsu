@@ -11,6 +11,7 @@
 #include "examples/linerpsu/cuckoohash.h"
 #include "examples/linerpsu/debug_logging.h"
 #include "examples/linerpsu/okvs/baxos.h"
+#include "examples/linerpsu/opprf_hash.h"
 #include "examples/linerpsu/socket_io.h"
 #include "examples/linerpsu/utils.h"
 #include "cryptoTools/Common/BitVector.h"
@@ -32,41 +33,42 @@ using namespace std::chrono;
 
 namespace {
 
-void BaseOtSend(coproto::Socket& sock,
+void BaseOtSend(coproto::Socket& sock, size_t hb_bits,
                 std::vector<std::array<uint128_t, 2>>* out) {
   debug::Log("base ot send start");
-  std::vector<std::array<block, 2>> send_blocks(KAPPA);
+  std::vector<std::array<block, 2>> send_blocks(hb_bits);
   osuCrypto::DefaultBaseOT base_ot;
   osuCrypto::PRNG prng(osuCrypto::sysRandomSeed());
   coproto::sync_wait(base_ot.send(send_blocks, prng, sock));
   linerpsu::socket_io::Flush(sock);
-  out->resize(KAPPA);
-  for (size_t i = 0; i < KAPPA; ++i) {
+  out->resize(hb_bits);
+  for (size_t i = 0; i < hb_bits; ++i) {
     (*out)[i][0] = BlockToU128(send_blocks[i][0]);
     (*out)[i][1] = BlockToU128(send_blocks[i][1]);
   }
   debug::Log("base ot send done");
 }
 
-void BaseOtRecv(coproto::Socket& sock, osuCrypto::BitVector* choices,
-                uint128_t* choice_mask, std::vector<uint128_t>* out) {
+void BaseOtRecv(coproto::Socket& sock, size_t hb_bits,
+                osuCrypto::BitVector* choices, uint128_t* choice_mask,
+                std::vector<uint128_t>* out) {
   debug::Log("base ot recv start");
-  choices->resize(KAPPA);
+  choices->resize(hb_bits);
   osuCrypto::PRNG prng(osuCrypto::sysRandomSeed());
   choices->randomize(prng);
   *choice_mask = 0;
-  for (size_t i = 0; i < KAPPA; ++i) {
+  for (size_t i = 0; i < hb_bits; ++i) {
     if ((*choices)[i]) {
       *choice_mask |= (static_cast<uint128_t>(1) << i);
     }
   }
 
-  std::vector<block> recv_blocks(KAPPA);
+  std::vector<block> recv_blocks(hb_bits);
   osuCrypto::DefaultBaseOT base_ot;
   coproto::sync_wait(base_ot.receive(*choices, recv_blocks, prng, sock));
   linerpsu::socket_io::Flush(sock);
-  out->resize(KAPPA);
-  for (size_t i = 0; i < KAPPA; ++i) {
+  out->resize(hb_bits);
+  for (size_t i = 0; i < hb_bits; ++i) {
     (*out)[i] = BlockToU128(recv_blocks[i]);
   }
   debug::Log("base ot recv done");
@@ -91,12 +93,13 @@ std::vector<uint128_t> PSUSend(coproto::Socket& sock,
   debug::Log("psu send wait t1");
   uint128_t t1 = linerpsu::socket_io::RecvValue<uint128_t>(sock);
 
+  const size_t hb_bits = linerpsu::opprf_hash::EffectiveHbBits();
   std::vector<std::array<uint128_t, 2>> send_blocks;
-  BaseOtSend(sock, &send_blocks);
+  BaseOtSend(sock, hb_bits, &send_blocks);
   // === Extract OT keys ===
-  std::vector<uint128_t> a_keys(KAPPA);
-  std::vector<uint128_t> b_keys(KAPPA);
-  for (size_t i = 0; i < KAPPA; ++i) {
+  std::vector<uint128_t> a_keys(hb_bits);
+  std::vector<uint128_t> b_keys(hb_bits);
+  for (size_t i = 0; i < hb_bits; ++i) {
     a_keys[i] = send_blocks[i][0];
     b_keys[i] = send_blocks[i][1];
   }
@@ -105,13 +108,10 @@ std::vector<uint128_t> PSUSend(coproto::Socket& sock,
 
   size_t n = cuckoolen;
   std::vector<uint128_t> all_A(n);
-  std::vector<uint128_t> all_B(n);
   std::vector<uint128_t> all_D(n);
-  aes128_encrypt_many(all_A.data(), a_keys.data(), T_X.bins_.data(), n);
-  aes128_encrypt_many(all_B.data(), b_keys.data(), T_X.bins_.data(), n);
-  for (size_t idx = 0; idx < n; ++idx) {
-    all_D[idx] = all_A[idx] ^ all_B[idx];
-  }
+  linerpsu::opprf_hash::EvalAAndDMany(all_A.data(), all_D.data(),
+                                      a_keys.data(), b_keys.data(),
+                                      T_X.bins_.data(), n, hb_bits);
 
   std::vector<uint128_t> p(okvssize);
 
@@ -184,13 +184,15 @@ std::vector<uint128_t> PSURecv(coproto::Socket& sock,
   osuCrypto::BitVector choices;
   uint128_t suint = 0;
   std::vector<uint128_t> c_keys;
-  BaseOtRecv(sock, &choices, &suint, &c_keys);
+  const size_t hb_bits = linerpsu::opprf_hash::EffectiveHbBits();
+  BaseOtRecv(sock, hb_bits, &choices, &suint, &c_keys);
 
   // === AES Encrypt ===
   size_t n = T_Y.size();
 
   std::vector<uint128_t> all_C(n);
-  aes128_encrypt_many(all_C.data(), c_keys.data(), T_Y.data(), n);
+  linerpsu::opprf_hash::EvalMany(all_C.data(), c_keys.data(), T_Y.data(), n,
+                                 hb_bits);
   debug::Log("psu recv wait P");
   std::vector<uint128_t> p =
       linerpsu::socket_io::RecvVector<uint128_t>(sock, okvssize);
@@ -233,12 +235,13 @@ std::vector<uint128_t> PSUSend(coproto::Socket& sock,
   size_t okvssize = baxos.getM();
   uint128_t t1 = linerpsu::socket_io::RecvValue<uint128_t>(sock);
 
+  const size_t hb_bits = linerpsu::opprf_hash::EffectiveHbBits();
   std::vector<std::array<uint128_t, 2>> send_blocks;
-  BaseOtSend(sock, &send_blocks);
+  BaseOtSend(sock, hb_bits, &send_blocks);
   // === Extract OT keys ===
-  std::vector<uint128_t> a_keys(KAPPA);
-  std::vector<uint128_t> b_keys(KAPPA);
-  for (size_t i = 0; i < KAPPA; ++i) {
+  std::vector<uint128_t> a_keys(hb_bits);
+  std::vector<uint128_t> b_keys(hb_bits);
+  for (size_t i = 0; i < hb_bits; ++i) {
     a_keys[i] = send_blocks[i][0];
     b_keys[i] = send_blocks[i][1];
   }
@@ -247,13 +250,10 @@ std::vector<uint128_t> PSUSend(coproto::Socket& sock,
 
   size_t n = cuckoolen;
   std::vector<uint128_t> all_A(n);
-  std::vector<uint128_t> all_B(n);
   std::vector<uint128_t> all_D(n);
-  aes128_encrypt_many(all_A.data(), a_keys.data(), T_X.bins_.data(), n);
-  aes128_encrypt_many(all_B.data(), b_keys.data(), T_X.bins_.data(), n);
-  for (size_t idx = 0; idx < n; ++idx) {
-    all_D[idx] = all_A[idx] ^ all_B[idx];
-  }
+  linerpsu::opprf_hash::EvalAAndDMany(all_A.data(), all_D.data(),
+                                      a_keys.data(), b_keys.data(),
+                                      T_X.bins_.data(), n, hb_bits);
 
   std::vector<uint128_t> p(okvssize);
 
@@ -320,13 +320,15 @@ std::vector<uint128_t> PSURecv(coproto::Socket& sock,
   osuCrypto::BitVector choices;
   uint128_t suint = 0;
   std::vector<uint128_t> c_keys;
-  BaseOtRecv(sock, &choices, &suint, &c_keys);
+  const size_t hb_bits = linerpsu::opprf_hash::EffectiveHbBits();
+  BaseOtRecv(sock, hb_bits, &choices, &suint, &c_keys);
 
   // === AES Encrypt ===
   size_t n = T_Y.size();
 
   std::vector<uint128_t> all_C(n);
-  aes128_encrypt_many(all_C.data(), c_keys.data(), T_Y.data(), n);
+  linerpsu::opprf_hash::EvalMany(all_C.data(), c_keys.data(), T_Y.data(), n,
+                                 hb_bits);
   std::vector<uint128_t> p =
       linerpsu::socket_io::RecvVector<uint128_t>(sock, okvssize);
 
