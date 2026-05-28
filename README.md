@@ -17,6 +17,81 @@ The current full PSU path uses the stationary GMW triple generator and is
 compiled with AVX2/AVX-512 options.  Run it on an x86-64 machine with AVX-512F
 and AVX-512DQ support when using the default Docker build.
 
+## Docker Usage
+
+The recommended portable path is Docker.  The image contains a pinned YACL
+workspace, the required `secure-join` and stationary libOTe builds, this
+`examples/linerpsu` tree, and the built `//examples/linerpsu:ourpsu` binary.
+The default command runs `/workspace/yacl/bazel-bin/examples/linerpsu/ourpsu`.
+
+### Use a Published Image
+
+Pull the published image from Docker Hub:
+
+```bash
+docker pull shallmate/linearpsu
+```
+
+Run a small PSU smoke test with the default OKVS backend:
+
+```bash
+docker run --rm \
+  -e OMP_NUM_THREADS=1 \
+  -e PSU_PEQT_GMW_THREADS=1 \
+  -e PSU_PEQT_PARALLEL_BATCHES=1 \
+  -e LINERPSU_RESULT_LINE=1 \
+  -e LINERPSU_LOGN=8 \
+  shallmate/linearpsu
+```
+
+Run the same test with the BPSY23 BandOKVS backend:
+
+```bash
+docker run --rm \
+  -e OMP_NUM_THREADS=1 \
+  -e PSU_PEQT_GMW_THREADS=1 \
+  -e PSU_PEQT_PARALLEL_BATCHES=1 \
+  -e LINERPSU_RESULT_LINE=1 \
+  -e LINERPSU_LOGN=8 \
+  -e LINERPSU_OKVS_BACKEND=bandokvs \
+  shallmate/linearpsu
+```
+
+### Build Locally
+
+From the YACL checkout root, build the image using this repository as the build
+context:
+
+```bash
+DOCKER_BUILDKIT=1 docker build \
+  -f examples/linerpsu/Dockerfile \
+  -t linerpsu \
+  examples/linerpsu
+```
+
+If you are already inside the `examples/linerpsu` repository, the equivalent
+command is:
+
+```bash
+DOCKER_BUILDKIT=1 docker build -t linerpsu .
+```
+
+The dependency prefix inside the image defaults to `/opt/linerpsu-deps`.  To use
+a different image-internal prefix, pass
+`--build-arg LINERPSU_DEPS=/some/writable/path`.
+
+Run the locally built image:
+
+```bash
+docker run --rm \
+  -e OMP_NUM_THREADS=1 \
+  -e PSU_PEQT_GMW_THREADS=1 \
+  -e PSU_PEQT_PARALLEL_BATCHES=1 \
+  -e LINERPSU_RESULT_LINE=1 \
+  -e LINERPSU_LOGN=8 \
+  linerpsu
+```
+
 ## Required Dependencies
 
 The native build has the following real dependencies:
@@ -192,89 +267,6 @@ PSU_PEQT_PARALLEL_BATCHES=1 \
 LINERPSU_RESULT_LINE=1 \
 LINERPSU_LOGN=8 \
 bazel-bin/examples/linerpsu/ourpsu
-```
-
-## Docker Usage
-
-The recommended portable path is Docker.  The image contains a pinned YACL
-workspace, the required `secure-join` and stationary libOTe builds, this
-`examples/linerpsu` tree, and the built `//examples/linerpsu:ourpsu` binary.
-The default command runs `/workspace/yacl/bazel-bin/examples/linerpsu/ourpsu`.
-
-### Use a Published Image
-
-Pull the published image from Docker Hub.  Replace `<tag>` with the released
-tag you want to use:
-
-```bash
-docker pull shallmate/linearpsu:<tag>
-```
-
-Run a small PSU smoke test with the default OKVS backend:
-
-```bash
-docker run --rm \
-  -e OMP_NUM_THREADS=1 \
-  -e PSU_PEQT_GMW_THREADS=1 \
-  -e PSU_PEQT_PARALLEL_BATCHES=1 \
-  -e LINERPSU_RESULT_LINE=1 \
-  -e LINERPSU_LOGN=8 \
-  shallmate/linearpsu:<tag>
-```
-
-Run the same test with the BPSY23 BandOKVS backend:
-
-```bash
-docker run --rm \
-  -e OMP_NUM_THREADS=1 \
-  -e PSU_PEQT_GMW_THREADS=1 \
-  -e PSU_PEQT_PARALLEL_BATCHES=1 \
-  -e LINERPSU_RESULT_LINE=1 \
-  -e LINERPSU_LOGN=8 \
-  -e LINERPSU_OKVS_BACKEND=bandokvs \
-  shallmate/linearpsu:<tag>
-```
-
-### Build Locally
-
-From the YACL checkout root, build the image using this repository as the build
-context:
-
-```bash
-DOCKER_BUILDKIT=1 docker build \
-  -f examples/linerpsu/Dockerfile \
-  -t linerpsu:latest \
-  examples/linerpsu
-```
-
-If you are already inside the `examples/linerpsu` repository, the equivalent
-command is:
-
-```bash
-DOCKER_BUILDKIT=1 docker build -t linerpsu:latest .
-```
-
-The dependency prefix inside the image defaults to `/opt/linerpsu-deps`.  To use
-a different image-internal prefix, pass
-`--build-arg LINERPSU_DEPS=/some/writable/path`.
-
-Run the locally built image:
-
-```bash
-docker run --rm \
-  -e OMP_NUM_THREADS=1 \
-  -e PSU_PEQT_GMW_THREADS=1 \
-  -e PSU_PEQT_PARALLEL_BATCHES=1 \
-  -e LINERPSU_RESULT_LINE=1 \
-  -e LINERPSU_LOGN=8 \
-  linerpsu:latest
-```
-
-To publish your local build, tag it and push it:
-
-```bash
-docker tag linerpsu:latest shallmate/linearpsu:<tag>
-docker push shallmate/linearpsu:<tag>
 ```
 
 ## Benchmark Scripts
