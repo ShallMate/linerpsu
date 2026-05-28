@@ -40,7 +40,7 @@ docker run --rm \
   -e PSU_PEQT_GMW_THREADS=1 \
   -e PSU_PEQT_PARALLEL_BATCHES=1 \
   -e LINERPSU_RESULT_LINE=1 \
-  -e LINERPSU_LOGN=8 \
+  -e LINERPSU_LOGN=20 \
   shallmate/linearpsu
 ```
 
@@ -52,7 +52,7 @@ docker run --rm \
   -e PSU_PEQT_GMW_THREADS=1 \
   -e PSU_PEQT_PARALLEL_BATCHES=1 \
   -e LINERPSU_RESULT_LINE=1 \
-  -e LINERPSU_LOGN=8 \
+  -e LINERPSU_LOGN=20 \
   -e LINERPSU_OKVS_BACKEND=bandokvs \
   shallmate/linearpsu
 ```
@@ -88,7 +88,7 @@ docker run --rm \
   -e PSU_PEQT_GMW_THREADS=1 \
   -e PSU_PEQT_PARALLEL_BATCHES=1 \
   -e LINERPSU_RESULT_LINE=1 \
-  -e LINERPSU_LOGN=8 \
+  -e LINERPSU_LOGN=20 \
   linerpsu
 ```
 
@@ -265,7 +265,7 @@ OMP_NUM_THREADS=1 \
 PSU_PEQT_GMW_THREADS=1 \
 PSU_PEQT_PARALLEL_BATCHES=1 \
 LINERPSU_RESULT_LINE=1 \
-LINERPSU_LOGN=8 \
+LINERPSU_LOGN=20 \
 bazel-bin/examples/linerpsu/ourpsu
 ```
 
@@ -280,7 +280,3 @@ examples/linerpsu/run_psu_lan_wan_matrix.sh
 ```
 
 They write CSV files under `examples/linerpsu/results/`.
-
-## Result Example
-
-![Result of our work](./linear.png)

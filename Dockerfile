@@ -147,4 +147,6 @@ RUN bazel build \
     --jobs="$(nproc)" \
     //examples/linerpsu:ourpsu
 
+ENV LINERPSU_LOGN=20
+
 CMD ["bazel-bin/examples/linerpsu/ourpsu"]
