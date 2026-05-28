@@ -7,7 +7,7 @@
 #include <utility>
 #include <vector>
 
-#include "examples/linerpsu/bokvs.h"
+#include "examples/linerpsu/band_okvs_adapter.h"
 #include "examples/linerpsu/cuckoohash.h"
 #include "examples/linerpsu/debug_logging.h"
 #include "examples/linerpsu/okvs/baxos.h"
@@ -24,8 +24,6 @@
 #include "yacl/utils/serialize.h"
 
 namespace psu {
-
-constexpr size_t KAPPA = 128;
 
 using namespace yacl::crypto;
 using namespace std;
@@ -223,7 +221,8 @@ std::vector<uint128_t> PSURecv(coproto::Socket& sock,
 std::vector<uint128_t> PSUSend(coproto::Socket& sock,
                                std::vector<uint128_t> elem_hashes,
                                CuckooHash& T_X, uint32_t cuckoolen,
-                               OKVSBK baxos, OKVSBK baxos2) {
+                               linerpsu::bandokvs::BandOkvs okvs,
+                               linerpsu::bandokvs::BandOkvs okvs2) {
   uint128_t r = yacl::crypto::FastRandU128();
   // Generate a random seed omega_1 for the first hash
   linerpsu::socket_io::SendValue(sock, r);
@@ -232,7 +231,7 @@ std::vector<uint128_t> PSUSend(coproto::Socket& sock,
   T_X.Insert(std::move(elem_hashes));
   T_X.Transform(r);
 
-  size_t okvssize = baxos.getM();
+  size_t okvssize = okvs.Size();
   uint128_t t1 = linerpsu::socket_io::RecvValue<uint128_t>(sock);
 
   const size_t hb_bits = linerpsu::opprf_hash::EffectiveHbBits();
@@ -257,9 +256,10 @@ std::vector<uint128_t> PSUSend(coproto::Socket& sock,
 
   std::vector<uint128_t> p(okvssize);
 
-  baxos.Encode(T_X.bins_, all_D);
+  okvs.Encode(absl::MakeSpan(T_X.bins_), absl::MakeSpan(all_D),
+              absl::MakeSpan(p));
 
-  linerpsu::socket_io::SendVector(sock, baxos.p_);
+  linerpsu::socket_io::SendVector(sock, p);
 
   uint128_t omega_2 = yacl::crypto::FastRandU128();
   linerpsu::socket_io::SendValue(sock, omega_2);
@@ -273,11 +273,12 @@ std::vector<uint128_t> PSUSend(coproto::Socket& sock,
   for (size_t idx = 0; idx < n; ++idx) {
     receivermasks[idx] = all_A[idx] ^ omega;
   }
-  size_t okvssize2 = baxos2.getM();
+  size_t okvssize2 = okvs2.Size();
   std::vector<uint128_t> pp(okvssize2);
   pp = linerpsu::socket_io::RecvVector<uint128_t>(sock, okvssize2);
   std::vector<uint128_t> rs(cuckoolen);
-  baxos2.DecodeDifflenP(T_X.bins_, rs, pp);
+  okvs2.Decode(absl::MakeSpan(T_X.bins_), absl::MakeSpan(pp),
+               absl::MakeSpan(rs));
   for (size_t idx = 0; idx < n; ++idx) {
     rs[idx] = rs[idx] ^ receivermasks[idx];
   }
@@ -286,8 +287,9 @@ std::vector<uint128_t> PSUSend(coproto::Socket& sock,
 
 std::vector<uint128_t> PSURecv(coproto::Socket& sock,
                                const std::vector<uint128_t>& elem_hashes,
-                               uint32_t cuckoolen, OKVSBK baxos,
-                               OKVSBK baxos2) {
+                               uint32_t cuckoolen,
+                               linerpsu::bandokvs::BandOkvs okvs,
+                               linerpsu::bandokvs::BandOkvs okvs2) {
   // cout<< "cuckoolen: " << cuckoolen << endl;
   uint128_t r = linerpsu::socket_io::RecvValue<uint128_t>(sock);
   std::vector<uint128_t> T_Y(elem_hashes.size() * 3);
@@ -314,7 +316,7 @@ std::vector<uint128_t> PSURecv(coproto::Socket& sock,
   uint128_t t_1 = yacl::crypto::Blake3_128(yacl::SerializeUint128(omega_1));
   linerpsu::socket_io::SendValue(sock, t_1);
 
-  size_t okvssize = baxos.getM();
+  size_t okvssize = okvs.Size();
 
   // === OT Recv ===
   osuCrypto::BitVector choices;
@@ -339,14 +341,17 @@ std::vector<uint128_t> PSURecv(coproto::Socket& sock,
   uint128_t omega = omega_1 ^ omega_2;
 
   std::vector<uint128_t> sendermasks(n);
-  baxos.DecodeDifflenP(T_Y, sendermasks, p);
+  okvs.Decode(absl::MakeSpan(T_Y), absl::MakeSpan(p),
+              absl::MakeSpan(sendermasks));
   for (size_t idx = 0; idx < n; ++idx) {
     sendermasks[idx] =
         RS[idx] ^ ((sendermasks[idx] & suint) ^ all_C[idx] ^ omega);
   }
 
-  baxos2.Encode(T_Y, sendermasks);
-  linerpsu::socket_io::SendVector(sock, baxos2.p_);
+  std::vector<uint128_t> pp(okvs2.Size());
+  okvs2.Encode(absl::MakeSpan(T_Y), absl::MakeSpan(sendermasks),
+               absl::MakeSpan(pp));
+  linerpsu::socket_io::SendVector(sock, pp);
   return rs;
 }
 }  // namespace psu

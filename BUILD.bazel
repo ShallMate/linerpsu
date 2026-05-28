@@ -1,3 +1,4 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//bazel:yacl.bzl", "yacl_cc_binary")
 
 package(default_visibility = ["//visibility:public"])
@@ -84,6 +85,43 @@ cc_import(
     shared_library = "libsilent_triple_gen_stationary_linerpsu.so",
 )
 
+cc_library(
+    name = "bandokvs_adapter",
+    srcs = [
+        "band_okvs_adapter.cc",
+        "bandokvs/band_okvs.cc",
+        "bandokvs/band.cc",
+        "bandokvs/utils.cc",
+    ],
+    hdrs = [
+        "band_okvs_adapter.h",
+        "bandokvs/band_okvs.h",
+        "bandokvs/band.h",
+        "bandokvs/uint.h",
+        "bandokvs/utils.h",
+    ],
+    copts = [
+        "-O3",
+        "-std=c++20",
+        "-Wall",
+        "-Wextra",
+        "-Wno-error",
+        "-maes",
+        "-mpclmul",
+        "-mavx2",
+        "-mavx512f",
+        "-Iexternal/local_secure_join_usr/out/libOTe/thirdparty",
+        "-Iexternal/local_secure_join_usr/out/libOTe/cryptoTools",
+        "-Iexternal/local_secure_join_usr/out/libOTe",
+        "-I/usr/local/include",
+    ],
+    deps = [
+        "@local_secure_join_usr//:headers",
+        "//yacl/base:exception",
+        "//yacl/base:int128",
+    ],
+)
+
 yacl_cc_binary(
     name = "ourpsu",
     srcs = [
@@ -106,8 +144,6 @@ yacl_cc_binary(
         "cuckoohash.h",
         "psu.h",
         "psu.cc",
-        "bokvs.h",
-        "bokvs.cc",
         "ps.h",
         "ps.cc",
         "eqote.h",
@@ -122,6 +158,7 @@ yacl_cc_binary(
         "GMW/SilentTripleGen.h",
     ],
     deps = [
+        ":bandokvs_adapter",
         ":silent_triple_gen_stationary",
         "@local_secure_join_usr//:securejoin",
         "@local_secure_join_usr//:securejoin_libs",

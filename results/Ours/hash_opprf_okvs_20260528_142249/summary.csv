@@ -1,0 +1,7 @@
+backend,backend_label,logn,ns,nr,cuckoolen,status,time_s,comm_bytes,comm_mb,sender_masks,receiver_masks,console_log
+okvs,Default,18,262144,262144,332922,ok,0.717036,27836080,26.546555,332922,332922,/home/lgw/yacl/examples/linerpsu/results/Ours/hash_opprf_okvs_20260528_142249/okvs_logn18.log
+okvs,Default,20,1048576,1048576,1331691,ok,4.00726,109688864,104.607452,1331691,1331691,/home/lgw/yacl/examples/linerpsu/results/Ours/hash_opprf_okvs_20260528_142249/okvs_logn20.log
+okvs,Default,22,4194304,4194304,5326766,ok,20.2613,435560096,415.382477,5326766,5326766,/home/lgw/yacl/examples/linerpsu/results/Ours/hash_opprf_okvs_20260528_142249/okvs_logn22.log
+bandokvs,With bpsy23,18,262144,262144,332922,ok,0.837959,18454336,17.599426,332922,332922,/home/lgw/yacl/examples/linerpsu/results/Ours/hash_opprf_okvs_20260528_142249/bandokvs_logn18.log
+bandokvs,With bpsy23,20,1048576,1048576,1331691,ok,3.88885,73795248,70.376633,1331691,1331691,/home/lgw/yacl/examples/linerpsu/results/Ours/hash_opprf_okvs_20260528_142249/bandokvs_logn20.log
+bandokvs,With bpsy23,22,4194304,4194304,5326766,ok,15.588,295158880,281.485443,5326766,5326766,/home/lgw/yacl/examples/linerpsu/results/Ours/hash_opprf_okvs_20260528_142249/bandokvs_logn22.log

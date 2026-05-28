@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <vector>
 
-#include "examples/linerpsu/bokvs.h"
 #include "examples/linerpsu/cuckoohash.h"
 #include "examples/linerpsu/okvs/baxos.h"
 #include "examples/linerpsu/utils.h"

@@ -9,6 +9,7 @@
 
 #include "examples/linerpsu/bench_items.h"
 #include "examples/linerpsu/benchmark_stats.h"
+#include "examples/linerpsu/band_okvs_adapter.h"
 #include "examples/linerpsu/cuckoohash.h"
 #include "examples/linerpsu/eqote.h"
 #include "examples/linerpsu/okvs/baxos.h"
@@ -39,8 +40,8 @@ linerpsu::bench::TrafficStats SocketTrafficDiff(
 }
 
 void PrintResultLine(uint64_t logn, uint64_t ns, uint64_t nr, uint64_t diff,
-                     uint32_t cuckoolen, double offline_seconds,
-                     double online_seconds,
+                     uint32_t cuckoolen, const char* okvs_backend,
+                     double offline_seconds, double online_seconds,
                      const linerpsu::bench::TrafficStats& offline_comm,
                      const linerpsu::bench::TrafficStats& online_comm,
                      size_t result_size) {
@@ -52,6 +53,7 @@ void PrintResultLine(uint64_t logn, uint64_t ns, uint64_t nr, uint64_t diff,
             << ",nr=" << nr
             << ",diff=" << diff
             << ",cuckoolen=" << cuckoolen
+            << ",okvs_backend=" << okvs_backend
             << ",offline_s=" << offline_seconds
             << ",online_s=" << online_seconds
             << ",total_s=" << (offline_seconds + online_seconds)
@@ -64,6 +66,24 @@ void PrintResultLine(uint64_t logn, uint64_t ns, uint64_t nr, uint64_t diff,
             << ",result_size=" << result_size << std::endl;
 }
 
+void PrintHashOpprfResultLine(
+    uint64_t logn, uint64_t ns, uint64_t nr, uint64_t diff,
+    uint32_t cuckoolen, const char* okvs_backend, double seconds,
+    const linerpsu::bench::TrafficStats& comm, size_t sender_masks,
+    size_t receiver_masks) {
+  std::cout << "LINERPSU_HASH_OPPRF_RESULT"
+            << ",logn=" << logn
+            << ",ns=" << ns
+            << ",nr=" << nr
+            << ",diff=" << diff
+            << ",cuckoolen=" << cuckoolen
+            << ",okvs_backend=" << okvs_backend
+            << ",time_s=" << seconds
+            << ",comm_bytes=" << linerpsu::bench::TotalSentBytes(comm)
+            << ",sender_masks=" << sender_masks
+            << ",receiver_masks=" << receiver_masks << std::endl;
+}
+
 void RunOurPSU() {
   auto opts = linerpsu::bench_config::LoadPsuOptions();
   const uint64_t ns = opts.ns;
@@ -71,17 +91,19 @@ void RunOurPSU() {
   const uint64_t diff = opts.diff;
 
   auto item_sets = linerpsu::bench_items::CreateBenchmarkItemSets(ns, nr, diff);
+  const auto okvs_backend = opts.okvs_backend;
+  const char* okvs_backend_name =
+      linerpsu::bench_config::OkvsBackendName(okvs_backend);
   cout << "ns: " << ns << ", nr: " << nr << ", diff: " << diff << endl;
   cout << "intersection size: " << item_sets.intersection_size << endl;
   uint32_t cuckoolen = static_cast<uint32_t>(ns * 1.27);
   cout << "cuckoo hash table size: " << cuckoolen << endl;
+  cout << "okvs backend: " << okvs_backend_name << endl;
 
   CuckooHash T_X(ns);
   size_t bin_size = cuckoolen / 4;
   size_t weight = 3;
   size_t ssp = 40;
-  okvs::Baxos baxos;
-  okvs::Baxos baxos2;
   double offline_seconds = 0.0;
   double online_seconds = 0.0;
   linerpsu::bench::TrafficStats offline_comm;
@@ -90,11 +112,6 @@ void RunOurPSU() {
   yacl::crypto::Prg<uint128_t> prng(yacl::crypto::FastRandU128());
   uint128_t seed;
   prng.Fill(absl::MakeSpan(&seed, 1));
-
-  baxos.Init(cuckoolen, bin_size, weight, ssp,
-             okvs::PaxosParam::DenseType::GF128, seed);
-  baxos2.Init(nr * 3, bin_size * 3, weight, ssp,
-              okvs::PaxosParam::DenseType::GF128, seed);
 
   std::vector<uint128_t> items_a = std::move(item_sets.sender);
   std::vector<uint128_t> items_b = std::move(item_sets.receiver);
@@ -107,23 +124,60 @@ void RunOurPSU() {
   auto comm_begin =
       linerpsu::bench::TakeSocketSnapshot(sender_sock, receiver_sock);
   auto start_time = high_resolution_clock::now();
-  std::future<std::vector<__uint128_t>> sender =
-      std::async(std::launch::async, [&] {
-        return psu::PSUSend(sender_sock, std::move(items_a), T_X, cuckoolen,
-                            baxos, baxos2);
-      });
-  std::future<std::vector<__uint128_t>> receiver =
-      std::async(std::launch::async, [&] {
-        return psu::PSURecv(receiver_sock, items_b, cuckoolen, baxos, baxos2);
-      });
-  auto rs = sender.get();
-  auto rr = receiver.get();
+  std::vector<uint128_t> rs;
+  std::vector<uint128_t> rr;
+  if (okvs_backend == linerpsu::bench_config::OkvsBackend::kBandOkvs) {
+    linerpsu::bandokvs::EnsureSupported();
+    linerpsu::bandokvs::BandOkvs okvs(cuckoolen);
+    linerpsu::bandokvs::BandOkvs okvs2(nr * 3);
+    std::future<std::vector<__uint128_t>> sender =
+        std::async(std::launch::async, [&] {
+          return psu::PSUSend(sender_sock, std::move(items_a), T_X, cuckoolen,
+                              okvs, okvs2);
+        });
+    std::future<std::vector<__uint128_t>> receiver =
+        std::async(std::launch::async, [&] {
+          return psu::PSURecv(receiver_sock, items_b, cuckoolen, okvs, okvs2);
+        });
+    rs = sender.get();
+    rr = receiver.get();
+  } else {
+    okvs::Baxos baxos;
+    okvs::Baxos baxos2;
+    baxos.Init(cuckoolen, bin_size, weight, ssp,
+               okvs::PaxosParam::DenseType::GF128, seed);
+    baxos2.Init(nr * 3, bin_size * 3, weight, ssp,
+                okvs::PaxosParam::DenseType::GF128, seed);
+    std::future<std::vector<__uint128_t>> sender =
+        std::async(std::launch::async, [&] {
+          return psu::PSUSend(sender_sock, std::move(items_a), T_X, cuckoolen,
+                              baxos, baxos2);
+        });
+    std::future<std::vector<__uint128_t>> receiver =
+        std::async(std::launch::async, [&] {
+          return psu::PSURecv(receiver_sock, items_b, cuckoolen, baxos, baxos2);
+        });
+    rs = sender.get();
+    rr = receiver.get();
+  }
   auto end_time = high_resolution_clock::now();
   std::chrono::duration<double> duration0 = end_time - start_time;
   online_seconds += duration0.count();
-  online_comm = linerpsu::bench::AddTraffic(
-      online_comm, SocketTrafficDiff(comm_begin, sender_sock, receiver_sock));
+  const auto psu_masks_comm =
+      SocketTrafficDiff(comm_begin, sender_sock, receiver_sock);
+  online_comm = linerpsu::bench::AddTraffic(online_comm, psu_masks_comm);
   linerpsu::stage_timing::Print("psu masks", duration0.count());
+  if (opts.result_line) {
+    PrintHashOpprfResultLine(opts.logn, ns, nr, diff, cuckoolen,
+                             okvs_backend_name, duration0.count(),
+                             psu_masks_comm, rs.size(), rr.size());
+  }
+  if (opts.hash_opprf_only) {
+    std::cout << "Hashing+OPPRF time: " << duration0.count() << " seconds"
+              << std::endl;
+    linerpsu::bench::PrintTraffic("Hashing+OPPRF", psu_masks_comm);
+    return;
+  }
 
   auto start_time1 = high_resolution_clock::now();
   uint128_t k = yacl::crypto::FastRandU128();
@@ -209,8 +263,9 @@ void RunOurPSU() {
     linerpsu::bench::PrintTraffic("Total", total_comm);
   }
   if (opts.result_line) {
-    PrintResultLine(opts.logn, ns, nr, diff, cuckoolen, offline_seconds,
-                    online_seconds, offline_comm, online_comm, items_b.size());
+    PrintResultLine(opts.logn, ns, nr, diff, cuckoolen, okvs_backend_name,
+                    offline_seconds, online_seconds, offline_comm,
+                    online_comm, items_b.size());
   }
 }
 
