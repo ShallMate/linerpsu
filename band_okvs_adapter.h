@@ -9,17 +9,18 @@
 
 namespace linerpsu::bandokvs {
 
-inline bool CpuSupportsAvx512F() {
+inline bool CpuSupportsBandOkvs() {
 #if defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
-  return __builtin_cpu_supports("avx512f");
+  return __builtin_cpu_supports("avx512f") &&
+         __builtin_cpu_supports("avx512dq");
 #else
   return false;
 #endif
 }
 
 inline void EnsureSupported() {
-  YACL_ENFORCE(CpuSupportsAvx512F(),
-               "bandokvs backend requires AVX-512F support");
+  YACL_ENFORCE(CpuSupportsBandOkvs(),
+               "bandokvs backend requires AVX-512F and AVX-512DQ support");
 }
 
 class BandOkvs {
